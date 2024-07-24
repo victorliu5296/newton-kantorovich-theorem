@@ -26,7 +26,7 @@ variable (h_subset : closedBall x₀ r ⊆ Ω)
 variable (h_bound1 : ‖(f' x₀).inverse (f x₀)‖ ≤ r / 2)
 variable (h_bound2 : ∀ (u v : X), u ∈ closedBall x₀ r → v ∈ closedBall x₀ r →
   -- ∀ x : X, ‖(f' x₀).inverse ((f' u - f' v) x)‖ ≤ (1 / r) * ‖u - v‖ * ‖x‖)
-  opNorm ((f' x₀).inverse ((f' u - f' v))) ≤ (1 / r) * ‖u - v‖)
+  opNorm ((f' x₀).inverse.comp (f' u - f' v)) ≤ (1 / r) * ‖u - v‖)
 
 -- Newton iteration sequence
 noncomputable def newton_seq : Nat → X
@@ -35,12 +35,12 @@ noncomputable def newton_seq : Nat → X
 
 -- Lemma for the sequence staying within the closed ball
 lemma sequence_in_ball :
-  ∀ k : Nat, (newton_seq k) ∈ closedBall x₀ r :=
+  ∀ k : Nat, (newton_seq x₀ f f' k) ∈ closedBall x₀ r :=
 sorry
 
 -- Lemma for the convergence rate
 lemma convergence_rate (a : X) :
-  ∀ k : Nat, ‖newton_seq k - a‖ ≤ r / 2^k :=
+  ∀ k : Nat, ‖newton_seq x₀ f f' k - a‖ ≤ r / 2^k :=
 sorry
 
 -- Lemma for the existence and uniqueness of the zero
