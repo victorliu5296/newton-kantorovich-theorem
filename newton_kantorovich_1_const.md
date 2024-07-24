@@ -6,7 +6,7 @@ Let $r > 0$ satisfy:
 - $\| f'(x_0)^{-1} f(x_0) \|_X \leq \frac{r}{2}$,
 - $\| f'(x_0)^{-1} (f'(u) - f'(v)) \|_{\mathcal{L}(X)} \leq \frac{1}{r} \| u - v \|_X$ for all $u, v \in B(x_0; r)$.
 
-Then, for each $x \in B(x_0; r)$, $f'(x)$ is bijective with $f'(x)^{-1} \in \mathcal{L}(Y; X)$ (set of linear operators). The sequence $(x_k)_{k=0}^{\infty}$, defined by $x_{k+1} = x_k - f'(x_k)^{-1} f(x_k)$, remains within $B(x_0; r)$ and converges to a unique zero $a \in \overline{B(x_0; r)}$ of $f$, with $\| x_k - a \| \leq \frac{r}{2^k}$ for all $k \geq 0$.
+Then, for each $x \in B(x_0; r)$, $f'(x)$ is bijective with $f'(x)^{-1} \in \mathcal{L}(Y; X)$ (vector space formed by all continuous linear operators). The sequence $(x_k)_{k=0}^{\infty}$, defined by $x_{k+1} = x_k - f'(x_k)^{-1} f(x_k)$, remains within $B(x_0; r)$ and converges to a zero $a$, which is the unique zero of $f$ in $\overline{B(x_0; r)}$, with $\| x_k - a \| \leq \frac{r}{2^k}$ for all $k \geq 0$.
 
 ---
 
@@ -50,7 +50,7 @@ and the point $a \in \overline{B(x_0; r)}$ is the only zero of $f$ in $\overline
 **Proof.** Like in the proofs of Theorems 3 and 4, we introduce the auxiliary function $h \in C^1(\Omega; X)$ defined by $h(x) := f'(x_0)^{-1} f(x), x \in \Omega$, so that $h'(x) = f'(x_0)^{-1} f'(x) \in \mathcal{L}(X; X), x \in \Omega$, and $h'(x_0) = \text{id}_X$. In terms of the function $h$, the assumptions of Theorem 5 therefore become
 
 $$
-\| h(x_0) \| \leq \frac{r}{2} \text{ and } \| h'(u) - h'(v) \| \leq \frac{1}{r} \| u - v \| \text{ for all } u, x \in B(x_0; r).
+\| h(x_0) \| \leq \frac{r}{2} \text{ and } \| h'(u) - h'(v) \| \leq \frac{1}{r} \| u - v \| \text{ for all } u, v \in B(x_0; r).
 $$
 
 (i) The following estimates hold:
