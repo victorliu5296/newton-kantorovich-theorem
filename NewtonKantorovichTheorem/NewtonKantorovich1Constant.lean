@@ -67,8 +67,36 @@ lemma invertible_of_near_invertible
     simp [this]
 
   -- Hence, B is invertible and its inverse is given by (u⁻¹).comp A⁻¹
-  have hB_inv : B.symm = (u.inv).comp (A.symm : Y →L[ℝ] X) := by
-    sorry
+  have hB_inv : (B.symm : Y →L[ℝ] X) = (u.inv).comp (A.symm : Y →L[ℝ] X) := by
+    -- We'll prove this by showing that both sides are left inverses of B
+    apply ContinuousLinearMap.ext
+    intro y
+
+    -- Show that B.symm (B x) = x
+    have h1 : ∀ x, (B.symm : Y →L[ℝ] X) ((B : X →L[ℝ] Y) x) = x := by
+      intro x
+      exact ContinuousLinearEquiv.symm_apply_apply B x
+
+    -- Show that (u.inv ∘ A.symm) (B x) = x
+    have h2 : ∀ x, ((u.inv).comp (A.symm : Y →L[ℝ] X)) ((B : X →L[ℝ] Y) x) = x := by
+      intro x
+      calc ((u.inv).comp (A.symm : Y →L[ℝ] X)) ((B : X →L[ℝ] Y) x)
+        = u.inv ((A.symm : Y →L[ℝ] X) ((B : X →L[ℝ] Y) x)) := by rfl
+        _ = u.inv ((A.symm : Y →L[ℝ] X) ((A : X →L[ℝ] Y) (u.val x))) := by rw [hB]; rfl
+        _ = u.inv (u.val x) := by simp
+        _ = x := by
+          have h_inv : u.inv.comp u.val = ContinuousLinearMap.id ℝ X := u.inv_val
+          rw [← ContinuousLinearMap.comp_apply]
+          exact congrArg (fun f => f x) h_inv
+
+    -- Now we can conclude that the two expressions are equal
+    calc (B.symm : Y →L[ℝ] X) y
+      = (B.symm : Y →L[ℝ] X) ((B : X →L[ℝ] Y) ((B.symm : Y →L[ℝ] X) y)) := by simp
+      _ = (B.symm : Y →L[ℝ] X) y := by rw [h1 ((B.symm : Y →L[ℝ] X) y)]
+      _ = ((u.inv).comp (A.symm : Y →L[ℝ] X)) ((B : X →L[ℝ] Y) ((B.symm : Y →L[ℝ] X) y)) := by
+        have h_eq := h2 ((B.symm : Y →L[ℝ] X) y)
+        nth_rw 1 [← h_eq]
+      _ = ((u.inv).comp (A.symm : Y →L[ℝ] X)) y := by simp
 
   -- Use `NormedRing.tsum_geometric_of_norm_lt_one` to bound the norm of u.inv
   have h_u_inv : ‖u.inv‖ ≤ (1 - ‖t‖)⁻¹ := by
