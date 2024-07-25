@@ -10,6 +10,13 @@ Then, for each $x \in B(x_0; r)$, $f'(x)$ is bijective with $f'(x)^{-1} \in \mat
 
 ---
 
+Let $X$ be a Banach space, let $Y$ be a normed vector space, and let $A \in \mathcal{L}(X;Y)$ be one-to-one and onto, with a continuous inverse $A^{-1}$, i.e. $A^{-1} \in \mathcal{L}(Y;X)$. Then, any $B \in \mathcal{L}(X;Y)$ such that 
+$$\|A^{-1}(B - A)\|_{\mathcal{L}(X)} < 1$$ 
+is also one-to-one and onto, with a continuous inverse $B^{-1} \in \mathcal{L}(Y;X)$ that satisfies 
+$$\|B^{-1}\|_{\mathcal{L}(Y;X)} \leq \frac{\|A^{-1}\|_{\mathcal{L}(Y;X)}}{1 - \|A^{-1}(B - A)\|_{\mathcal{L}(X)}}.$$
+
+---
+
 **Theorem 5 (Newton–Kantorovich Theorem “with Only One Constant”).**
 
 Let there be given two Banach spaces $X$ and $Y$, an open subset $\Omega$ of $X$, a point $x_0 \in \Omega$, and a mapping $f \in C^1(\Omega; Y)$ such that $f'(x_0) \in \mathcal{L}(X; Y)$ is one-to-one and onto (hence, $f'(x_0)^{-1} \in \mathcal{L}(Y; X)$).
