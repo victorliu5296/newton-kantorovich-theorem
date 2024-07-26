@@ -22,25 +22,33 @@ variable (f : X → Y) (hf : ContDiffOn ℝ 1 f Ω)
 -- Define the radius r
 variable (r : ℝ) (hr : 0 < r)
 -- Define f' as a mapping
-variable (f' : X → X →L[ℝ] Y)
-         (hf' : ∀ x ∈ Ω, HasFDerivAt f (f' x) x)
+variable (f' : X → X ≃L[ℝ] Y)
+         (hf' : ∀ x ∈ Ω, HasFDerivAt f (f' x : X →L[ℝ] Y) x)
 
 -- Assumptions
 variable (h_subset : closedBall x₀ r ⊆ Ω)
-variable (h_bound1 : ‖(f' x₀).inverse (f x₀)‖ ≤ r / 2)
+variable (h_bound1 : ‖(f' x₀).symm (f x₀)‖ ≤ r / 2)
 variable (h_bound2 : ∀ (u v : X), u ∈ closedBall x₀ r → v ∈ closedBall x₀ r →
   -- ∀ x : X, ‖(f' x₀).inverse ((f' u - f' v) x)‖ ≤ (1 / r) * ‖u - v‖ * ‖x‖)
-  ‖(f' x₀).inverse.comp (f' u - f' v)‖ ≤ (1 / r) * ‖u - v‖)
+  ‖((f' x₀).symm : Y →L[ℝ] X).comp ((f' u : X →L[ℝ] Y) - (f' v : X →L[ℝ] Y))‖ ≤ (1 / r) * ‖u - v‖)
 
 -- Newton iteration sequence
 noncomputable def newton_seq : Nat → X
 | 0       => x₀
-| (n + 1) => newton_seq n - (f' (newton_seq n)).inverse (f (newton_seq n))
+| (n + 1) => newton_seq n - (f' (newton_seq n)).symm (f (newton_seq n))
 
 -- Auxiliary function h
-noncomputable def h (x : X) : X := (f' x₀).inverse (f x)
-noncomputable def h' (x : X) : X →L[ℝ] X := (f' x₀).inverse.comp (f' x)
-variable (hh' : ∀ x ∈ Ω, HasFDerivAt (h x₀ f f') (h' x₀ f' x) x)
+noncomputable def h (x : X) : X := (f' x₀).symm (f x)
+noncomputable def h' (x : X) : X ≃L[ℝ] X := (f' x).trans (f' x₀).symm
+variable (hh' : ∀ x ∈ Ω, HasFDerivAt (h x₀ f f') (h' x₀ f' x : X →L[ℝ] X) x)
+
+lemma h'x₀_eq_id : h' x₀ f' x₀ = ContinuousLinearMap.id ℝ X := by
+  unfold h'
+  sorry
+
+lemma h'x₀_symm_eq_id: (h' x₀ f' x₀).symm = ContinuousLinearMap.id ℝ X := by
+  unfold h'
+  sorry
 
 lemma invertible_of_near_invertible
   (A B : X ≃L[ℝ] Y)
@@ -114,26 +122,38 @@ lemma invertible_of_near_invertible
     _ = ‖(A.symm : Y →L[ℝ] X)‖ / (1 - ‖t‖) := by exact Eq.symm (div_eq_inv_mul ‖(A.symm : Y →L[ℝ] X)‖ (1 - ‖t‖))
 
 -- (i) Estimates
-
 lemma h_inverse_bound (x : X) (hx : x ∈ ball x₀ r) :
-  ‖(h' x₀ f' x).inverse‖ ≤ 1 / (1 - ‖x - x₀‖ / r) := by
-  have h_derivative_bound : ‖h' x₀ f' x - h' x₀ f' x₀‖ < 1 := by
+  ‖((h' x₀ f' x).symm : X →L[ℝ] X)‖ ≤ 1 / (1 - ‖x - x₀‖ / r) := by
+  have h_derivative_bound : ‖(h' x₀ f' x : X →L[ℝ] X) - (h' x₀ f' x₀ : X →L[ℝ] X)‖ ≤ ‖x - x₀‖ / r := by
     have hx_in_ball : x ∈ closedBall x₀ r := by
       exact ball_subset_closedBall hx
     have h_bound := h_bound2 x x₀ hx_in_ball (mem_closedBall_self (le_of_lt hr))
     repeat' rw [h']
-    calc
-      ‖(f' x₀).inverse.comp (f' x) - (f' x₀).inverse.comp (f' x₀)‖
-      = ‖(f' x₀).inverse.comp (f' x - f' x₀)‖ := by simp [sub_eq_add_neg, comp_sub]
+    calc ‖(((f' x₀).symm : Y →L[ℝ] X).comp (f' x : X →L[ℝ] Y)) - (((f' x₀).symm : Y →L[ℝ] X).comp (f' x₀ : X →L[ℝ] Y))‖
+      _ = ‖((f' x₀).symm : Y →L[ℝ] X).comp ((f' x : X →L[ℝ] Y) - (f' x₀ : X →L[ℝ] Y))‖ := by simp [sub_eq_add_neg, comp_sub]
       _ ≤ 1 / r * ‖x - x₀‖ := by apply h_bound
-      _ < 1 := by
-        simp
-        apply (inv_mul_lt_iff hr).mpr
-        simp
-        exact mem_ball_iff_norm.mp hx
+      _ = ‖x - x₀‖ / r := by rw [mul_comm, mul_div]; simp
 
-  sorry
-  -- apply invertible_near_bounded_linear_map (h' x₀) (h' x) (h_derivative_bound)
+  have dist_lt_one : ‖x - x₀‖ / r < 1 := by
+    refine (div_lt_one hr).mpr ?_
+    exact mem_ball_iff_norm.mp hx
+
+  have h_derivative_lt_one : ‖(h' x₀ f' x : X →L[ℝ] X) - (h' x₀ f' x₀ : X →L[ℝ] X)‖ < 1 := by
+    have hx_in_ball : x ∈ closedBall x₀ r := by
+      exact ball_subset_closedBall hx
+    apply lt_of_lt_of_le'
+    · exact dist_lt_one
+    · exact h_derivative_bound
+
+  calc ‖((h' x₀ f' x).symm : X →L[ℝ] X)‖
+    _ ≤ ‖((h' x₀ f' x₀).symm : X →L[ℝ] X)‖ / (1 - ‖((h' x₀ f' x₀).symm : X →L[ℝ] X).comp ((h' x₀ f' x : X →L[ℝ] X) - (h' x₀ f' x₀ : X →L[ℝ] X))‖) := by
+      sorry
+    _ = 1 / (1 - ‖(h' x₀ f' x : X →L[ℝ] X) - (h' x₀ f' x₀ : X →L[ℝ] X)‖) := by
+      sorry
+    _ ≤ 1 / (1 - ‖x - x₀‖ / r) := by
+      refine one_div_le_one_div_of_le ?ha ?h
+      · linarith [dist_lt_one]
+      · linarith [h_derivative_bound]
 
 lemma h_difference_bound (u v : X) (hu : u ∈ closedBall x₀ r) (hv : v ∈ closedBall x₀ r) :
   ‖h x₀ f f' u - h x₀ f f'  v - h' x₀ f' v (u - v)‖ ≤ (1 / (2 * r)) * ‖u - v‖^2 := by
@@ -145,7 +165,7 @@ lemma newton_iterates_properties :
     newton_seq x₀ f f' k ∈ ball x₀ r ∧
     ‖newton_seq x₀ f f' k - newton_seq x₀ f f' (k-1)‖ ≤ r / 2^k ∧
     ‖newton_seq x₀ f f' k - x₀‖ ≤ r * (1 - 1 / 2^k) ∧
-    ‖(h' x₀ f' (newton_seq x₀ f f' k)).inverse‖ ≤ 2^k ∧
+    ‖((h' x₀ f' (newton_seq x₀ f f' k)).symm : X →L[ℝ] X)‖ ≤ 2^k ∧
     ‖h x₀ f f' (newton_seq x₀ f f' k)‖ ≤ r / 2^(2*k+1) := by
 sorry
 
