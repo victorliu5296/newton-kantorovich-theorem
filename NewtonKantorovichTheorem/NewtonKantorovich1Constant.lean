@@ -44,11 +44,13 @@ variable (hh' : ∀ x ∈ Ω, HasFDerivAt (h x₀ f f') (h' x₀ f' x : X →L[�
 
 lemma h'x₀_eq_id : h' x₀ f' x₀ = ContinuousLinearMap.id ℝ X := by
   unfold h'
-  sorry
+  ext x₀.symm_apply_apply
+  aesop
 
 lemma h'x₀_symm_eq_id: (h' x₀ f' x₀).symm = ContinuousLinearMap.id ℝ X := by
   unfold h'
-  sorry
+  ext x₀.symm_apply_apply
+  aesop
 
 lemma invertible_of_near_invertible
   (A B : X ≃L[ℝ] Y)
