@@ -139,17 +139,17 @@ lemma h_inverse_bound (x : X) (hx : x ∈ ball x₀ r) :
     exact mem_ball_iff_norm.mp hx
 
   have h_derivative_lt_one : ‖(h' x₀ f' x : X →L[ℝ] X) - (h' x₀ f' x₀ : X →L[ℝ] X)‖ < 1 := by
-    have hx_in_ball : x ∈ closedBall x₀ r := by
-      exact ball_subset_closedBall hx
     apply lt_of_lt_of_le'
     · exact dist_lt_one
     · exact h_derivative_bound
 
   calc ‖((h' x₀ f' x).symm : X →L[ℝ] X)‖
     _ ≤ ‖((h' x₀ f' x₀).symm : X →L[ℝ] X)‖ / (1 - ‖((h' x₀ f' x₀).symm : X →L[ℝ] X).comp ((h' x₀ f' x : X →L[ℝ] X) - (h' x₀ f' x₀ : X →L[ℝ] X))‖) := by
-      sorry
+      apply invertible_of_near_invertible
+      rw [h'x₀_symm_eq_id]
+      simp [h_derivative_lt_one]
     _ = 1 / (1 - ‖(h' x₀ f' x : X →L[ℝ] X) - (h' x₀ f' x₀ : X →L[ℝ] X)‖) := by
-      sorry
+      simp [h'x₀_eq_id, h'x₀_symm_eq_id]
     _ ≤ 1 / (1 - ‖x - x₀‖ / r) := by
       refine one_div_le_one_div_of_le ?ha ?h
       · linarith [dist_lt_one]
