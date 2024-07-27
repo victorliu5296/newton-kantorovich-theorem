@@ -17,6 +17,14 @@ $$\|B^{-1}\|_{\mathcal{L}(Y;X)} \leq \frac{\|A^{-1}\|_{\mathcal{L}(Y;X)}}{1 - \|
 
 ---
 
+$$\textbf{Theorem 1 (Mean Value Theorem for Functions of Class $C^1$ with Values in a Banach Space).}$$ Let $\Omega$ be an open subset in a normed vector space $X$, let $Y$ be a Banach space, and let $f \in C^1(\Omega; Y)$. Then, given any closed segment $[a, b] \subset \Omega$,
+
+$$
+f(b) - f(a) = \int_0^1 f'((1-\theta)a + \theta b)(b-a) \, d\theta.
+$$
+
+---
+
 **Theorem 5 (Newton–Kantorovich Theorem “with Only One Constant”).**
 
 Let there be given two Banach spaces $X$ and $Y$, an open subset $\Omega$ of $X$, a point $x_0 \in \Omega$, and a mapping $f \in C^1(\Omega; Y)$ such that $f'(x_0) \in \mathcal{L}(X; Y)$ is one-to-one and onto (hence, $f'(x_0)^{-1} \in \mathcal{L}(Y; X)$).

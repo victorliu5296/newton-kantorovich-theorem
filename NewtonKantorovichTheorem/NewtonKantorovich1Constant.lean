@@ -3,8 +3,10 @@ import Mathlib.Topology.MetricSpace.Basic
 import Mathlib.Analysis.NormedSpace.Basic
 import Mathlib.Analysis.Calculus.FDeriv.Basic
 import Mathlib.Analysis.Calculus.ContDiff.Defs
+import Mathlib.MeasureTheory.Integral.IntervalIntegral
+import Mathlib.MeasureTheory.Integral.FundThmCalculus
 
-open Set Function Topology Metric ContinuousLinearMap Filter Units
+open Set Function Topology Metric ContinuousLinearMap Filter Units MeasureTheory
 
 section NewtonKantorovich1Constant
 
@@ -24,6 +26,11 @@ variable (r : ℝ) (hr : 0 < r)
 -- Define f' as a mapping
 variable (f' : X → X ≃L[ℝ] Y)
          (hf' : ∀ x ∈ Ω, HasFDerivAt f (f' x : X →L[ℝ] Y) x)
+variable (a b : X) (hab : ∀ t, t ∈ Set.Icc (0 : ℝ) 1 → (a + t • (b - a)) ∈ Ω)
+lemma f'_cont : ContinuousOn (f' x : X →L[ℝ] Y) Ω := by
+  fun_prop
+lemma f'_cont_a_b : ContinuousOn (fun t : ℝ ↦ (f' (a + t • (b - a)) : X →L[ℝ] Y)) (Set.Icc 0 1) := by
+  sorry
 
 -- Assumptions
 variable (h_subset : closedBall x₀ r ⊆ Ω)
