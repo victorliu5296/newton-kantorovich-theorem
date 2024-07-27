@@ -9,7 +9,7 @@ open Set Function Topology Metric ContinuousLinearMap Filter Units MeasureTheory
 section MeanValueBanach
 
 lemma mean_value_theorem_banach_space
-  {X Y : Type*} [NormedAddCommGroup X] [NormedSpace ℝ X] [CompleteSpace X]
+  {X Y : Type*} [NormedAddCommGroup X] [NormedSpace ℝ X]
   [NormedAddCommGroup Y] [NormedSpace ℝ Y] [CompleteSpace Y]
   {f : X → Y} {f' : X → X →L[ℝ] Y} {a b : X}
   (hcont : ContinuousOn (fun t : ℝ ↦ (f' (a + t • (b - a)) : X →L[ℝ] Y)) (Set.Icc 0 1))
