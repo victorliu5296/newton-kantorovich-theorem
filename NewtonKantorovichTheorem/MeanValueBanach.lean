@@ -15,9 +15,6 @@ lemma mean_value_theorem_banach_space
   (hcont : ContinuousOn (fun t : ℝ ↦ (f' (a + t • (b - a)) : X →L[ℝ] Y)) (Set.Icc 0 1))
   (hderiv : ∀ t ∈ Set.Icc (0 : ℝ) 1, HasFDerivAt f (f' (a + t • (b - a)) : X →L[ℝ] Y) (a + t • (b - a))) :
   f b - f a = ∫ (t : ℝ) in (0:ℝ)..(1:ℝ), (f' (a + t • (b - a)) : X →L[ℝ] Y) (b - a) := by
-  -- Step 0: silly special case
-  rcases eq_or_ne a b with rfl | _
-  · simp only [sub_self, smul_zero, add_zero, map_zero, intervalIntegral.integral_zero]
   -- Step 1: Define the path from a to b
   let γ : ℝ → X := fun t ↦ a + t • (b - a)
   have γ_continuous (t : ℝ) : ContinuousWithinAt γ (Icc 0 1) t := by
