@@ -1,5 +1,7 @@
 import Mathlib.Analysis.Calculus.ContDiff.Defs
 import Mathlib.MeasureTheory.Integral.IntervalIntegral
+import NewtonKantorovichTheorem.MeanValueBanach
+import NewtonKantorovichTheorem.CLMBound
 
 open Set Topology Metric ContinuousLinearMap
 
@@ -22,50 +24,42 @@ variable (r : ℝ) (hr : 0 < r)
 variable (f' : X → X ≃L[ℝ] Y)
          (hf' : ∀ x ∈ Ω, HasFDerivAt f (f' x : X →L[ℝ] Y) x)
 variable (a b : X) (hab : ∀ t, t ∈ Icc (0 : ℝ) 1 → (a + t • (b - a)) ∈ Ω)
-noncomputable def f'_clm : X → X →L[ℝ] Y := fun x ↦ (f' x).toContinuousLinearMap
--- lemma f'_clm_continuous : ContinuousOn f'_clm Ω := by
---   have h_fderiv_cont : ContinuousOn (fun x ↦ fderiv ℝ f x) Ω := by
---     apply ContDiffOn.continuousOn_fderiv_of_isOpen hf hΩ
---     norm_num
---   apply ContinuousOn.congr h_fderiv_cont
---   intro x hx
---   simp [f'_clm]
---   apply ContinuousLinearMap.coe_injective
---   exact (hf' x hx).fderiv
 
-lemma f'_cont : ContinuousOn (f' x : X →L[ℝ] Y) Ω := by
-  fun_prop
-lemma f'_cont_a_b : ContinuousOn (fun t : ℝ ↦ (f' (a + t • (b - a)) : X →L[ℝ] Y)) (Icc 0 1) := by
-  let γ : ℝ → X := fun t ↦ a + t • (b - a)
-  have γ_continuous (t : ℝ) : ContinuousWithinAt γ (Icc 0 1) t := by
-    simp [γ]
-    apply ContinuousWithinAt.add
+-- Define the parameteric path γ from a to b
+def γ (a b : X) : ℝ → X := fun t ↦ a + t • (b - a)
+
+lemma γ_continuous (a b : X) (t : ℝ) : ContinuousWithinAt (γ a b) (Icc 0 1) t := by
+  apply ContinuousWithinAt.add
+  · exact continuousWithinAt_const
+  · apply ContinuousWithinAt.smul
+    · exact continuousWithinAt_id
     · exact continuousWithinAt_const
-    · apply ContinuousWithinAt.smul
-      · exact continuousWithinAt_id
-      · exact continuousWithinAt_const
-  -- Define f'_clm as the composition of f' with toContinuousLinearMap
-  let f'_clm := fun x ↦ (f' x).toContinuousLinearMap
-  -- Show that f'_clm is the derivative of f
-  have f'_is_deriv : ∀ x ∈ Ω, f' x = fderiv ℝ f x := by
-    intro x hx
-    exact Eq.symm (HasFDerivAt.fderiv (hf' x hx))
-  -- Use the continuity of f'_clm on Ω
-  have f'_clm_cont : ContinuousOn f'_clm Ω := by
-    have h_fderiv_cont : ContinuousOn (fun x ↦ fderiv ℝ f x) Ω := by
-      apply ContDiffOn.continuousOn_fderiv_of_isOpen hf hΩ
-      norm_num
-    apply ContinuousOn.congr h_fderiv_cont
-    intro x hx
-    simp [f'_clm]
-    exact f'_is_deriv x hx
-  have h_comp : ContinuousOn (f'_clm ∘ γ) (Icc 0 1):= by
+
+noncomputable def f'_clm : X → X →L[ℝ] Y := fun x ↦ (f' x).toContinuousLinearMap
+
+lemma f'_clm_continuous {Ω : Set X}  {f : X → Y}
+    {f' : X → X ≃L[ℝ] Y}
+    (hΩ : IsOpen Ω) (hf : ContDiffOn ℝ 1 f Ω)
+    (hf' : ∀ x ∈ Ω, HasFDerivAt f (f' x : X →L[ℝ] Y) x) :
+    ContinuousOn (f'_clm f') Ω := by
+  have h_fderiv_cont : ContinuousOn (fun x ↦ fderiv ℝ f x) Ω := by
+    apply ContDiffOn.continuousOn_fderiv_of_isOpen hf hΩ
+    norm_num
+  apply ContinuousOn.congr h_fderiv_cont
+  intro x hx
+  simp [f'_clm]
+  exact Eq.symm (HasFDerivAt.fderiv (hf' x hx))
+
+lemma f'_cont : ContinuousOn (f' x : X →L[ℝ] Y) Ω := by fun_prop
+
+lemma f'_cont_a_b : ContinuousOn (fun t : ℝ ↦ (f' (a + t • (b - a)) : X →L[ℝ] Y)) (Icc 0 1) := by
+  have h_comp : ContinuousOn (f'_clm f' ∘ γ a b) (Icc 0 1):= by
     apply ContinuousOn.comp
-    · exact f'_clm_cont
-    · exact fun x _ ↦ γ_continuous x
+    · exact f'_clm_continuous hΩ hf hf'
+    · intro t _
+      exact γ_continuous a b t
     · exact hab
   exact h_comp
-
 
 -- Assumptions
 variable (h_subset : closedBall x₀ r ⊆ Ω)
@@ -84,6 +78,9 @@ noncomputable def h (x : X) : X := (f' x₀).symm (f x)
 noncomputable def h' (x : X) : X ≃L[ℝ] X := (f' x).trans (f' x₀).symm
 variable (hh' : ∀ x ∈ Ω, HasFDerivAt (h x₀ f f') (h' x₀ f' x : X →L[ℝ] X) x)
 
+lemma h'_eq_deriv : ∀ x ∈ Ω, h' x₀ f' x = fderiv ℝ (h x₀ f f') x := by
+  exact fun x a ↦ Eq.symm (HasFDerivAt.fderiv (hh' x a))
+
 lemma h'x₀_eq_id : h' x₀ f' x₀ = ContinuousLinearMap.id ℝ X := by
   unfold h'
   ext x₀.symm_apply_apply
@@ -94,76 +91,8 @@ lemma h'x₀_symm_eq_id: (h' x₀ f' x₀).symm = ContinuousLinearMap.id ℝ X :
   ext x₀.symm_apply_apply
   aesop
 
-lemma invertible_of_near_invertible
-    (A B : X ≃L[ℝ] Y)
-    (h_norm : ‖(A.symm : Y →L[ℝ] X).comp ((B : X →L[ℝ] Y) - (A : X →L[ℝ] Y))‖ < 1) :
-    ‖(B.symm : Y →L[ℝ] X)‖ ≤ ‖(A.symm : Y →L[ℝ] X)‖ / (1 - ‖(A.symm : Y →L[ℝ] X).comp ((B : X →L[ℝ] Y) - (A : X →L[ℝ] Y))‖) := by
-  -- Let t be the perturbation
-  let t := (A.symm : Y →L[ℝ] X).comp ((B : X →L[ℝ] Y) - (A : X →L[ℝ] Y))
-  have ht : ‖-t‖ < 1 := by
-    simp
-    exact h_norm
-
-  -- Use `oneSub` to get the inverse of (1 - (-t)) = 1 + t
-  let u := Units.oneSub (-t) ht
-  have hu : u.val = 1 + t := by
-    rw [← sub_neg_eq_add]
-    rfl
-
-  -- Now we know that (B : X →L[ℝ] Y) = A ∘ (u.val)
-  have hB : (B : X →L[ℝ] Y) = (A : X →L[ℝ] Y).comp (u.val) := by
-    rw [hu]
-    rw [comp_add, ← comp_assoc]
-    have : 1 = ContinuousLinearMap.id ℝ X := by
-      exact rfl
-    simp [this]
-
-  -- Hence, B is invertible and its inverse is given by (u⁻¹).comp A⁻¹
-  have hB_inv : (B.symm : Y →L[ℝ] X) = (u.inv).comp (A.symm : Y →L[ℝ] X) := by
-    -- We'll prove this by showing that both sides are left inverses of B
-    apply ContinuousLinearMap.ext
-    intro y
-
-    -- Show that B.symm (B x) = x
-    have h1 : ∀ x, (B.symm : Y →L[ℝ] X) ((B : X →L[ℝ] Y) x) = x := by
-      intro x
-      exact ContinuousLinearEquiv.symm_apply_apply B x
-
-    -- Show that (u.inv ∘ A.symm) (B x) = x
-    have h2 : ∀ x, ((u.inv).comp (A.symm : Y →L[ℝ] X)) ((B : X →L[ℝ] Y) x) = x := by
-      intro x
-      calc ((u.inv).comp (A.symm : Y →L[ℝ] X)) ((B : X →L[ℝ] Y) x)
-        = u.inv ((A.symm : Y →L[ℝ] X) ((B : X →L[ℝ] Y) x)) := by rfl
-        _ = u.inv ((A.symm : Y →L[ℝ] X) ((A : X →L[ℝ] Y) (u.val x))) := by rw [hB]; rfl
-        _ = u.inv (u.val x) := by simp
-        _ = x := by
-          have h_inv : u.inv.comp u.val = ContinuousLinearMap.id ℝ X := u.inv_val
-          rw [← ContinuousLinearMap.comp_apply]
-          exact congrArg (fun f => f x) h_inv
-
-    -- Now we can conclude that the two expressions are equal
-    calc (B.symm : Y →L[ℝ] X) y
-      = (B.symm : Y →L[ℝ] X) ((B : X →L[ℝ] Y) ((B.symm : Y →L[ℝ] X) y)) := by simp
-      _ = (B.symm : Y →L[ℝ] X) y := by rw [h1 ((B.symm : Y →L[ℝ] X) y)]
-      _ = ((u.inv).comp (A.symm : Y →L[ℝ] X)) ((B : X →L[ℝ] Y) ((B.symm : Y →L[ℝ] X) y)) := by
-        have h_eq := h2 ((B.symm : Y →L[ℝ] X) y)
-        nth_rw 1 [← h_eq]
-      _ = ((u.inv).comp (A.symm : Y →L[ℝ] X)) y := by simp
-
-  -- Use `NormedRing.tsum_geometric_of_norm_lt_one` to bound the norm of u.inv
-  have h_u_inv : ‖u.inv‖ ≤ (1 - ‖t‖)⁻¹ := by
-    have h_geom_series := NormedRing.tsum_geometric_of_norm_lt_one (-t) ht
-    have h_one_norm : ‖(1 : X →L[ℝ] X)‖ = 1 := norm_id
-    rw [h_one_norm] at h_geom_series
-    simp at h_geom_series
-    simp
-    exact h_geom_series
-
-  calc
-    ‖(B.symm : Y →L[ℝ] X)‖ = ‖(u.inv).comp (A.symm : Y →L[ℝ] X)‖ := by rw [hB_inv]
-    _ ≤ ‖u.inv‖ * ‖(A.symm : Y →L[ℝ] X)‖ := by exact opNorm_comp_le u.inv (A.symm : Y →L[ℝ] X)
-    _ ≤ (1 - ‖t‖)⁻¹ * ‖(A.symm : Y →L[ℝ] X)‖ := mul_le_mul_of_nonneg_right h_u_inv (norm_nonneg _)
-    _ = ‖(A.symm : Y →L[ℝ] X)‖ / (1 - ‖t‖) := by exact Eq.symm (div_eq_inv_mul ‖(A.symm : Y →L[ℝ] X)‖ (1 - ‖t‖))
+lemma h'_cont_a_b : ContinuousOn (fun t : ℝ ↦ ((h' x₀ f') (a + t • (b - a)) : X →L[ℝ] X)) (Icc 0 1) := by
+  sorry
 
 -- (i) Estimates
 lemma h_inverse_bound (x : X) (hx : x ∈ ball x₀ r) :
