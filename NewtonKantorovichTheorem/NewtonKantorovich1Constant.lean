@@ -1,12 +1,7 @@
-import Mathlib.Analysis.NormedSpace.BoundedLinearMaps
-import Mathlib.Topology.MetricSpace.Basic
-import Mathlib.Analysis.NormedSpace.Basic
-import Mathlib.Analysis.Calculus.FDeriv.Basic
 import Mathlib.Analysis.Calculus.ContDiff.Defs
 import Mathlib.MeasureTheory.Integral.IntervalIntegral
-import Mathlib.MeasureTheory.Integral.FundThmCalculus
 
-open Set Function Topology Metric ContinuousLinearMap Filter Units MeasureTheory
+open Set Topology Metric ContinuousLinearMap
 
 section NewtonKantorovich1Constant
 
@@ -26,11 +21,51 @@ variable (r : ℝ) (hr : 0 < r)
 -- Define f' as a mapping
 variable (f' : X → X ≃L[ℝ] Y)
          (hf' : ∀ x ∈ Ω, HasFDerivAt f (f' x : X →L[ℝ] Y) x)
-variable (a b : X) (hab : ∀ t, t ∈ Set.Icc (0 : ℝ) 1 → (a + t • (b - a)) ∈ Ω)
+variable (a b : X) (hab : ∀ t, t ∈ Icc (0 : ℝ) 1 → (a + t • (b - a)) ∈ Ω)
+noncomputable def f'_clm : X → X →L[ℝ] Y := fun x ↦ (f' x).toContinuousLinearMap
+-- lemma f'_clm_continuous : ContinuousOn f'_clm Ω := by
+--   have h_fderiv_cont : ContinuousOn (fun x ↦ fderiv ℝ f x) Ω := by
+--     apply ContDiffOn.continuousOn_fderiv_of_isOpen hf hΩ
+--     norm_num
+--   apply ContinuousOn.congr h_fderiv_cont
+--   intro x hx
+--   simp [f'_clm]
+--   apply ContinuousLinearMap.coe_injective
+--   exact (hf' x hx).fderiv
+
 lemma f'_cont : ContinuousOn (f' x : X →L[ℝ] Y) Ω := by
   fun_prop
-lemma f'_cont_a_b : ContinuousOn (fun t : ℝ ↦ (f' (a + t • (b - a)) : X →L[ℝ] Y)) (Set.Icc 0 1) := by
-  sorry
+lemma f'_cont_a_b : ContinuousOn (fun t : ℝ ↦ (f' (a + t • (b - a)) : X →L[ℝ] Y)) (Icc 0 1) := by
+  let γ : ℝ → X := fun t ↦ a + t • (b - a)
+  have γ_continuous (t : ℝ) : ContinuousWithinAt γ (Icc 0 1) t := by
+    simp [γ]
+    apply ContinuousWithinAt.add
+    · exact continuousWithinAt_const
+    · apply ContinuousWithinAt.smul
+      · exact continuousWithinAt_id
+      · exact continuousWithinAt_const
+  -- Define f'_clm as the composition of f' with toContinuousLinearMap
+  let f'_clm := fun x ↦ (f' x).toContinuousLinearMap
+  -- Show that f'_clm is the derivative of f
+  have f'_is_deriv : ∀ x ∈ Ω, f' x = fderiv ℝ f x := by
+    intro x hx
+    exact Eq.symm (HasFDerivAt.fderiv (hf' x hx))
+  -- Use the continuity of f'_clm on Ω
+  have f'_clm_cont : ContinuousOn f'_clm Ω := by
+    have h_fderiv_cont : ContinuousOn (fun x ↦ fderiv ℝ f x) Ω := by
+      apply ContDiffOn.continuousOn_fderiv_of_isOpen hf hΩ
+      norm_num
+    apply ContinuousOn.congr h_fderiv_cont
+    intro x hx
+    simp [f'_clm]
+    exact f'_is_deriv x hx
+  have h_comp : ContinuousOn (f'_clm ∘ γ) (Icc 0 1):= by
+    apply ContinuousOn.comp
+    · exact f'_clm_cont
+    · exact fun x _ ↦ γ_continuous x
+    · exact hab
+  exact h_comp
+
 
 -- Assumptions
 variable (h_subset : closedBall x₀ r ⊆ Ω)
@@ -60,9 +95,9 @@ lemma h'x₀_symm_eq_id: (h' x₀ f' x₀).symm = ContinuousLinearMap.id ℝ X :
   aesop
 
 lemma invertible_of_near_invertible
-  (A B : X ≃L[ℝ] Y)
-  (h_norm : ‖(A.symm : Y →L[ℝ] X).comp ((B : X →L[ℝ] Y) - (A : X →L[ℝ] Y))‖ < 1) :
-  ‖(B.symm : Y →L[ℝ] X)‖ ≤ ‖(A.symm : Y →L[ℝ] X)‖ / (1 - ‖(A.symm : Y →L[ℝ] X).comp ((B : X →L[ℝ] Y) - (A : X →L[ℝ] Y))‖) := by
+    (A B : X ≃L[ℝ] Y)
+    (h_norm : ‖(A.symm : Y →L[ℝ] X).comp ((B : X →L[ℝ] Y) - (A : X →L[ℝ] Y))‖ < 1) :
+    ‖(B.symm : Y →L[ℝ] X)‖ ≤ ‖(A.symm : Y →L[ℝ] X)‖ / (1 - ‖(A.symm : Y →L[ℝ] X).comp ((B : X →L[ℝ] Y) - (A : X →L[ℝ] Y))‖) := by
   -- Let t be the perturbation
   let t := (A.symm : Y →L[ℝ] X).comp ((B : X →L[ℝ] Y) - (A : X →L[ℝ] Y))
   have ht : ‖-t‖ < 1 := by
@@ -70,7 +105,7 @@ lemma invertible_of_near_invertible
     exact h_norm
 
   -- Use `oneSub` to get the inverse of (1 - (-t)) = 1 + t
-  let u := oneSub (-t) ht
+  let u := Units.oneSub (-t) ht
   have hu : u.val = 1 + t := by
     rw [← sub_neg_eq_add]
     rfl
@@ -132,7 +167,7 @@ lemma invertible_of_near_invertible
 
 -- (i) Estimates
 lemma h_inverse_bound (x : X) (hx : x ∈ ball x₀ r) :
-  ‖((h' x₀ f' x).symm : X →L[ℝ] X)‖ ≤ 1 / (1 - ‖x - x₀‖ / r) := by
+    ‖((h' x₀ f' x).symm : X →L[ℝ] X)‖ ≤ 1 / (1 - ‖x - x₀‖ / r) := by
   have h_derivative_bound : ‖(h' x₀ f' x : X →L[ℝ] X) - (h' x₀ f' x₀ : X →L[ℝ] X)‖ ≤ ‖x - x₀‖ / r := by
     have hx_in_ball : x ∈ closedBall x₀ r := by
       exact ball_subset_closedBall hx
@@ -181,7 +216,7 @@ sorry
 -- (iii) Convergence to zero
 lemma newton_seq_converges :
   ∃ a, a ∈ closedBall x₀ r ∧
-      Tendsto (newton_seq x₀ f f') atTop (𝓝 a) ∧
+      Filter.Tendsto (newton_seq x₀ f f') atTop (𝓝 a) ∧
       f a = 0 ∧
       ∀ k, ‖newton_seq x₀ f f' k - a‖ ≤ r / 2^k := by
 sorry

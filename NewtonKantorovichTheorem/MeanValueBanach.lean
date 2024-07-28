@@ -1,10 +1,8 @@
-import Mathlib.Topology.MetricSpace.Basic
-import Mathlib.Analysis.NormedSpace.Basic
 import Mathlib.Analysis.Calculus.FDeriv.Basic
 import Mathlib.MeasureTheory.Integral.IntervalIntegral
 import Mathlib.MeasureTheory.Integral.FundThmCalculus
 
-open Set Function Topology Metric ContinuousLinearMap Filter Units MeasureTheory
+open Set
 
 section MeanValueBanach
 
@@ -55,8 +53,8 @@ lemma integral_eq_sub_of_hasFDerivAt
       dsimp [γ] at hderiv'
       dsimp [γ]
       have hx' : x ∈ uIcc 0 1 := by
-        simp
-        simp at hx
+        simp only [zero_le_one, uIcc_of_le, mem_Icc]
+        simp only [mem_Ioo] at hx
         constructor
         · linarith [hx.left]
         · linarith [hx.right]
