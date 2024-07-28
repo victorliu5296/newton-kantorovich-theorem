@@ -50,9 +50,9 @@ lemma f'_clm_continuous {Ω : Set X}  {f : X → Y}
   simp [f'_clm]
   exact Eq.symm (HasFDerivAt.fderiv (hf' x hx))
 
-lemma f'_cont : ContinuousOn (f' x : X →L[ℝ] Y) Ω := by fun_prop
-
-lemma f'_cont_a_b : ContinuousOn (fun t : ℝ ↦ (f' (a + t • (b - a)) : X →L[ℝ] Y)) (Icc 0 1) := by
+lemma f'_cont_a_b :
+    ContinuousOn (fun t : ℝ ↦
+      (f' (a + t • (b - a)) : X →L[ℝ] Y)) (Icc 0 1) := by
   have h_comp : ContinuousOn (f'_clm f' ∘ γ a b) (Icc 0 1):= by
     apply ContinuousOn.comp
     · exact f'_clm_continuous hΩ hf hf'
@@ -60,6 +60,59 @@ lemma f'_cont_a_b : ContinuousOn (fun t : ℝ ↦ (f' (a + t • (b - a)) : X �
       exact γ_continuous a b t
     · exact hab
   exact h_comp
+
+-- Auxiliary function h
+noncomputable def h (x : X) : X := (f' x₀).symm (f x)
+noncomputable def h' (x : X) : X ≃L[ℝ] X := (f' x).trans (f' x₀).symm
+noncomputable def h'_clm : X → X →L[ℝ] X := fun x ↦ (h' x₀ f' x).toContinuousLinearMap
+
+lemma h_contDiffOn : ContDiffOn ℝ 1 (h x₀ f f') Ω := by
+  sorry
+
+lemma h'_deriv : ∀ x ∈ Ω, HasFDerivAt (h x₀ f f') (h' x₀ f' x : X →L[ℝ] X) x := by
+  intro x hx
+  sorry
+
+lemma h'_clm_continuous {Ω : Set X} {x₀ : X} {f : X → Y} {f' : X → X ≃L[ℝ] Y}
+    (hΩ : IsOpen Ω)
+    (hh : ContDiffOn ℝ 1 (h x₀ f f') Ω)
+    (hh' : ∀ x ∈ Ω, HasFDerivAt (h x₀ f f') (h' x₀ f' x : X →L[ℝ] X) x) :
+    ContinuousOn (h'_clm x₀ f') Ω := by
+  have h_fderiv_cont : ContinuousOn (fun x ↦ fderiv ℝ (h x₀ f f') x) Ω := by
+    apply ContDiffOn.continuousOn_fderiv_of_isOpen hh hΩ
+    norm_num
+  apply ContinuousOn.congr h_fderiv_cont
+  intro x hx
+  simp [h'_clm]
+  exact Eq.symm (HasFDerivAt.fderiv (hh' x hx))
+
+lemma h'_cont_a_b {Ω : Set X} {x₀ a b : X} {f : X → Y} {f' : X → X ≃L[ℝ] Y}
+    (hab : ∀ t, t ∈ Icc (0 : ℝ) 1 → (a + t • (b - a)) ∈ Ω)
+    (hΩ : IsOpen Ω)
+    (hh : ContDiffOn ℝ 1 (h x₀ f f') Ω)
+    (hh' : ∀ x ∈ Ω, HasFDerivAt (h x₀ f f') (h' x₀ f' x : X →L[ℝ] X) x) :
+    ContinuousOn (fun t : ℝ ↦
+      ((h' x₀ f') (a + t • (b - a)) : X →L[ℝ] X)) (Icc 0 1) := by
+  have h_comp : ContinuousOn (h'_clm x₀ f' ∘ γ a b) (Icc 0 1):= by
+    apply ContinuousOn.comp
+    · exact h'_clm_continuous hΩ hh hh'
+    · intro t _
+      exact γ_continuous a b t
+    · exact hab
+  exact h_comp
+
+lemma h'_eq_deriv : ∀ x ∈ Ω, h' x₀ f' x = fderiv ℝ (h x₀ f f') x := by
+  exact fun x a ↦ Eq.symm (HasFDerivAt.fderiv ((h'_deriv Ω x₀ f f') x a))
+
+lemma h'x₀_eq_id : h' x₀ f' x₀ = ContinuousLinearMap.id ℝ X := by
+  unfold h'
+  ext x₀.symm_apply_apply
+  aesop
+
+lemma h'x₀_symm_eq_id: (h' x₀ f' x₀).symm = ContinuousLinearMap.id ℝ X := by
+  unfold h'
+  ext x₀.symm_apply_apply
+  aesop
 
 -- Assumptions
 variable (h_subset : closedBall x₀ r ⊆ Ω)
@@ -72,27 +125,6 @@ variable (h_bound2 : ∀ (u v : X), u ∈ closedBall x₀ r → v ∈ closedBall
 noncomputable def newton_seq : Nat → X
 | 0       => x₀
 | (n + 1) => newton_seq n - (f' (newton_seq n)).symm (f (newton_seq n))
-
--- Auxiliary function h
-noncomputable def h (x : X) : X := (f' x₀).symm (f x)
-noncomputable def h' (x : X) : X ≃L[ℝ] X := (f' x).trans (f' x₀).symm
-variable (hh' : ∀ x ∈ Ω, HasFDerivAt (h x₀ f f') (h' x₀ f' x : X →L[ℝ] X) x)
-
-lemma h'_eq_deriv : ∀ x ∈ Ω, h' x₀ f' x = fderiv ℝ (h x₀ f f') x := by
-  exact fun x a ↦ Eq.symm (HasFDerivAt.fderiv (hh' x a))
-
-lemma h'x₀_eq_id : h' x₀ f' x₀ = ContinuousLinearMap.id ℝ X := by
-  unfold h'
-  ext x₀.symm_apply_apply
-  aesop
-
-lemma h'x₀_symm_eq_id: (h' x₀ f' x₀).symm = ContinuousLinearMap.id ℝ X := by
-  unfold h'
-  ext x₀.symm_apply_apply
-  aesop
-
-lemma h'_cont_a_b : ContinuousOn (fun t : ℝ ↦ ((h' x₀ f') (a + t • (b - a)) : X →L[ℝ] X)) (Icc 0 1) := by
-  sorry
 
 -- (i) Estimates
 lemma h_inverse_bound (x : X) (hx : x ∈ ball x₀ r) :
@@ -118,7 +150,7 @@ lemma h_inverse_bound (x : X) (hx : x ∈ ball x₀ r) :
 
   calc ‖((h' x₀ f' x).symm : X →L[ℝ] X)‖
     _ ≤ ‖((h' x₀ f' x₀).symm : X →L[ℝ] X)‖ / (1 - ‖((h' x₀ f' x₀).symm : X →L[ℝ] X).comp ((h' x₀ f' x : X →L[ℝ] X) - (h' x₀ f' x₀ : X →L[ℝ] X))‖) := by
-      apply invertible_of_near_invertible
+      apply inverse_norm_le
       rw [h'x₀_symm_eq_id]
       simp [h_derivative_lt_one]
     _ = 1 / (1 - ‖(h' x₀ f' x : X →L[ℝ] X) - (h' x₀ f' x₀ : X →L[ℝ] X)‖) := by
