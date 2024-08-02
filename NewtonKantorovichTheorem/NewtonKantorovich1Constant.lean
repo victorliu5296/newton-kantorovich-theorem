@@ -18,8 +18,6 @@ variable (Ω : Set X) (hΩ : IsOpen Ω)
 variable (x₀ : X) (hx₀ : x₀ ∈ Ω)
 -- Define the C¹ mapping f: Ω → Y
 variable (f : X → Y) (hf : ContDiffOn ℝ 1 f Ω)
--- Define the radius r
-variable (r : ℝ) (hr : 0 < r)
 -- Define f' as a mapping
 variable (f' : X → X ≃L[ℝ] Y)
          (hf' : ∀ x ∈ Ω, HasFDerivAt f (f' x : X →L[ℝ] Y) x)
@@ -29,8 +27,7 @@ variable (a b : X) (hab : ∀ t, t ∈ Icc (0 : ℝ) 1 → (a + t • (b - a)) �
 def γ (a b : X) : ℝ → X := fun t ↦ a + t • (b - a)
 
 lemma γ_continuous (a b : X) (t : ℝ) : ContinuousWithinAt (γ a b) (Icc 0 1) t := by
-  apply ContinuousWithinAt.add
-  · exact continuousWithinAt_const
+  apply ContinuousWithinAt.add continuousWithinAt_const
   · apply ContinuousWithinAt.smul
     · exact continuousWithinAt_id
     · exact continuousWithinAt_const
@@ -66,43 +63,37 @@ noncomputable def h (x : X) : X := (f' x₀).symm (f x)
 noncomputable def h' (x : X) : X ≃L[ℝ] X := (f' x).trans (f' x₀).symm
 noncomputable def h'_clm : X → X →L[ℝ] X := fun x ↦ (h' x₀ f' x).toContinuousLinearMap
 
-lemma h_contDiffOn : ContDiffOn ℝ 1 (h x₀ f f') Ω := by
-  sorry
+lemma h'_deriv : ∀ x ∈ Ω, HasFDerivAt (h x₀ f f') (h'_clm x₀ f' x) x := by
+  intro x hx
+  -- Step 1: Express h as a composition
+  have h_comp : h x₀ f f' = (f' x₀).symm ∘ f := rfl
+  have h'_comp : h'_clm x₀ f' x = ((f' x₀).symm : Y →L[ℝ] X).comp (f' x : X →L[ℝ] Y) := rfl
+  rw [h_comp, h'_comp]
+  exact (ContinuousLinearEquiv.comp_hasFDerivAt_iff (f' x₀).symm).mpr (hf' x hx)
 
-lemma h'_deriv : ∀ x ∈ Ω, HasFDerivAt (h x₀ f f') (h' x₀ f' x : X →L[ℝ] X) x := by
+lemma h'_eq_deriv : ∀ x ∈ Ω, h' x₀ f' x = fderiv ℝ (h x₀ f f') x := by
+  exact fun x a ↦ Eq.symm (HasFDerivAt.fderiv ((h'_deriv Ω x₀ f f' hf') x a))
+
+lemma h'_cont : ∀ x ∈ Ω, ContinuousOn (h'_clm x₀ f' x) Ω := by fun_prop
+
+lemma h'_contDiffOn : ContDiffOn ℝ 1 (h x₀ f f') Ω := by
+  have h'_cont : ∀ x ∈ Ω, ContinuousOn (fderiv ℝ (h x₀ f f') x) Ω := by
+    intro x hx
+    rw [← h'_eq_deriv Ω x₀ f f' hf' x]
+    fun_prop
+    exact hx
+  unfold h
   intro x hx
   sorry
-
-lemma h'_clm_continuous {Ω : Set X} {x₀ : X} {f : X → Y} {f' : X → X ≃L[ℝ] Y}
-    (hΩ : IsOpen Ω)
-    (hh : ContDiffOn ℝ 1 (h x₀ f f') Ω)
-    (hh' : ∀ x ∈ Ω, HasFDerivAt (h x₀ f f') (h' x₀ f' x : X →L[ℝ] X) x) :
-    ContinuousOn (h'_clm x₀ f') Ω := by
-  have h_fderiv_cont : ContinuousOn (fun x ↦ fderiv ℝ (h x₀ f f') x) Ω := by
-    apply ContDiffOn.continuousOn_fderiv_of_isOpen hh hΩ
-    norm_num
-  apply ContinuousOn.congr h_fderiv_cont
-  intro x hx
-  simp [h'_clm]
-  exact Eq.symm (HasFDerivAt.fderiv (hh' x hx))
 
 lemma h'_cont_a_b {Ω : Set X} {x₀ a b : X} {f : X → Y} {f' : X → X ≃L[ℝ] Y}
     (hab : ∀ t, t ∈ Icc (0 : ℝ) 1 → (a + t • (b - a)) ∈ Ω)
     (hΩ : IsOpen Ω)
-    (hh : ContDiffOn ℝ 1 (h x₀ f f') Ω)
+    (hh_contDiffOn : ContDiffOn ℝ 1 (h x₀ f f') Ω)
     (hh' : ∀ x ∈ Ω, HasFDerivAt (h x₀ f f') (h' x₀ f' x : X →L[ℝ] X) x) :
     ContinuousOn (fun t : ℝ ↦
       ((h' x₀ f') (a + t • (b - a)) : X →L[ℝ] X)) (Icc 0 1) := by
-  have h_comp : ContinuousOn (h'_clm x₀ f' ∘ γ a b) (Icc 0 1):= by
-    apply ContinuousOn.comp
-    · exact h'_clm_continuous hΩ hh hh'
-    · intro t _
-      exact γ_continuous a b t
-    · exact hab
-  exact h_comp
-
-lemma h'_eq_deriv : ∀ x ∈ Ω, h' x₀ f' x = fderiv ℝ (h x₀ f f') x := by
-  exact fun x a ↦ Eq.symm (HasFDerivAt.fderiv ((h'_deriv Ω x₀ f f') x a))
+  exact f'_cont_a_b Ω hΩ (h x₀ f f') hh_contDiffOn (h' x₀ f') hh' a b hab
 
 lemma h'x₀_eq_id : h' x₀ f' x₀ = ContinuousLinearMap.id ℝ X := by
   unfold h'
@@ -113,6 +104,9 @@ lemma h'x₀_symm_eq_id: (h' x₀ f' x₀).symm = ContinuousLinearMap.id ℝ X :
   unfold h'
   ext x₀.symm_apply_apply
   aesop
+
+-- Define the radius r
+variable (r : ℝ) (hr : 0 < r)
 
 -- Assumptions
 variable (h_subset : closedBall x₀ r ⊆ Ω)
@@ -149,7 +143,9 @@ lemma h_inverse_bound (x : X) (hx : x ∈ ball x₀ r) :
     · exact h_derivative_bound
 
   calc ‖((h' x₀ f' x).symm : X →L[ℝ] X)‖
-    _ ≤ ‖((h' x₀ f' x₀).symm : X →L[ℝ] X)‖ / (1 - ‖((h' x₀ f' x₀).symm : X →L[ℝ] X).comp ((h' x₀ f' x : X →L[ℝ] X) - (h' x₀ f' x₀ : X →L[ℝ] X))‖) := by
+    _ ≤ ‖((h' x₀ f' x₀).symm : X →L[ℝ] X)‖ / (1 -
+    ‖((h' x₀ f' x₀).symm : X →L[ℝ] X).comp
+    ((h' x₀ f' x : X →L[ℝ] X) - (h' x₀ f' x₀ : X →L[ℝ] X))‖) := by
       apply inverse_norm_le
       rw [h'x₀_symm_eq_id]
       simp [h_derivative_lt_one]
@@ -161,12 +157,11 @@ lemma h_inverse_bound (x : X) (hx : x ∈ ball x₀ r) :
       · linarith [h_derivative_bound]
 
 lemma h_difference_bound (u v : X) (hu : u ∈ closedBall x₀ r) (hv : v ∈ closedBall x₀ r) :
-  ‖h x₀ f f' u - h x₀ f f'  v - h' x₀ f' v (u - v)‖ ≤ (1 / (2 * r)) * ‖u - v‖^2 := by
+    ‖h x₀ f f' u - h x₀ f f'  v - h' x₀ f' v (u - v)‖ ≤ (1 / (2 * r)) * ‖u - v‖^2 := by
 sorry
 
 -- (ii) Newton iterates properties
-lemma newton_iterates_properties :
-  ∀ k : ℕ,
+lemma newton_iterates_properties (k : ℕ):
     newton_seq x₀ f f' k ∈ ball x₀ r ∧
     ‖newton_seq x₀ f f' k - newton_seq x₀ f f' (k-1)‖ ≤ r / 2^k ∧
     ‖newton_seq x₀ f f' k - x₀‖ ≤ r * (1 - 1 / 2^k) ∧
