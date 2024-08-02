@@ -75,7 +75,7 @@ $$
 $$
 
 $$
-\| h(u) - h(v) - h'(v)(u - v) \| \leq \frac{1}{2r} \| u - v \|^2 \text{ for all } u, v \in \overline{B(x_0; r)}.
+\| h(b) - h(a) - h'(a)(b - a) \| \leq \frac{1}{2r} \| b - a \|^2 \text{ for all } b, a \in \overline{B(x_0; r)}.
 $$
 
 By assumption,
@@ -99,22 +99,26 @@ Hence, the first estimate holds.
 Using the mean value theorem (Theorem 1), we next have
 
 $$
-\| h(u) - h(v) - h'(v)(u - v) \| = \left\| \int_0^1 (h'((1 - t)v + tx_1) - h'(v))(u - v) dt \right\|
+\| h(b) - h(a) - h'(a)(b - a) \| = \left\| \int_0^1 (h'(a + t(b - a)) - h'(a))(b - a) dt \right\|
 $$
 
 $$
-\leq \left( \int_0^1 \| h'((1 - t)v + tx_1) - h'(v) \| dt \right) \| u - v \|
+\leq \left( \int_0^1 \| h'(a + t(b - a)) - h'(a) \| dt \right) \| b - a \|
 $$
 
 $$
-\leq \frac{1}{r} \left( \int_0^1 t dt \right) \| u - v \|^2
+\leq \left(\int_0^1 \frac{1}{r} \| (a + t(b - a) - a) \| dt \right) \| b - a \|
 $$
 
 $$
-= \frac{1}{2r} \| u - v \|^2 \text{ for all } u, v \in B(x_0; r).
+\leq \frac{1}{r} \left( \int_0^1 t dt \right) \| b - a \|^2
 $$
 
-But the above inequality holds as well for all $u$, $v \in \overline{B(x_0; r)}$ since the functions appearing on each side are continuous. Hence, the second estimate holds.
+$$
+= \frac{1}{2r} \| b - a \|^2 \text{ for all } b, a \in B(x_0; r).
+$$
+
+But the above inequality holds as well for all $b$, $a \in \overline{B(x_0; r)}$ since the functions appearing on each side are continuous. Hence, the second estimate holds.
 
 (ii) The Newton iterates $x_k, k \geq 0$, for the function $h$, which are the same as those for the function $f$, belong to the open ball $B(x_0; r)$ (hence, they are well defined) and they satisfy the following estimates for all $k \geq 1$:
 
