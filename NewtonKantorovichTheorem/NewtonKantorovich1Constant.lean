@@ -76,15 +76,12 @@ lemma h'_eq_deriv : ∀ x ∈ Ω, h' x₀ f' x = fderiv ℝ (h x₀ f f') x := b
 
 lemma h'_cont : ∀ x ∈ Ω, ContinuousOn (h'_clm x₀ f' x) Ω := by fun_prop
 
-lemma h'_contDiffOn : ContDiffOn ℝ 1 (h x₀ f f') Ω := by
-  have h'_cont : ∀ x ∈ Ω, ContinuousOn (fderiv ℝ (h x₀ f f') x) Ω := by
-    intro x hx
-    rw [← h'_eq_deriv Ω x₀ f f' hf' x]
-    fun_prop
-    exact hx
-  unfold h
-  intro x hx
-  sorry
+lemma h_contDiffOn : ContDiffOn ℝ 1 (h x₀ f f') Ω := by
+  have h_comp : h x₀ f f' = (f' x₀).symm ∘ f := rfl
+  rw [h_comp]
+  -- Apply the chain rule for ContDiffOn
+  rw [ContinuousLinearEquiv.comp_contDiffOn_iff (f' x₀).symm]
+  exact hf
 
 lemma h'_cont_a_b {Ω : Set X} {x₀ a b : X} {f : X → Y} {f' : X → X ≃L[ℝ] Y}
     (hab : ∀ t, t ∈ Icc (0 : ℝ) 1 → (a + t • (b - a)) ∈ Ω)
