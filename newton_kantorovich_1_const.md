@@ -111,7 +111,7 @@ $$
 $$
 
 $$
-\leq \frac{1}{r} \left( \int_0^1 t dt \right) \| b - a \|^2
+= \frac{1}{r} \left( \int_0^1 t dt \right) \| b - a \|^2
 $$
 
 $$

@@ -1,5 +1,6 @@
 import Mathlib.Analysis.Calculus.ContDiff.Defs
 import Mathlib.MeasureTheory.Integral.IntervalIntegral
+import Mathlib.Analysis.SpecialFunctions.Integrals
 import NewtonKantorovichTheorem.MeanValueBanach
 import NewtonKantorovichTheorem.CLMBound
 
@@ -205,6 +206,14 @@ lemma h_difference_bound (ha : a ∈ closedBall x₀ r)
     · simp only [zero_le_one, uIcc_of_le]
       exact continuousOn_const
 
+  have smul_integrable : IntervalIntegrable
+    (fun x ↦ ‖x • (b - a)‖) MeasureTheory.volume 0 1 := by
+      apply IntervalIntegrable.norm
+      apply ContinuousOn.intervalIntegrable
+      apply ContinuousOn.smul
+      · exact continuousOn_id
+      · exact continuousOn_const
+
   calc ‖h x₀ f f' b - h x₀ f f' a - h'_clm x₀ f' a (b - a)‖
     _ = ‖∫ (t : ℝ) in (0 : ℝ)..(1 : ℝ),
         (h'_clm x₀ f' (a + t • (b - a)) - h'_clm x₀ f' a) (b - a)‖ := by
@@ -246,11 +255,7 @@ lemma h_difference_bound (ha : a ∈ closedBall x₀ r)
       · exact integrable_norm_h'a_t_smul_b_sub_a_sub_h'a
       · simp only [add_sub_cancel_left]
         apply IntervalIntegrable.div_const
-        apply IntervalIntegrable.norm
-        apply ContinuousOn.intervalIntegrable
-        apply ContinuousOn.smul
-        · exact continuousOn_id
-        · exact continuousOn_const
+        exact smul_integrable
       · intro t ht
         have : (a + t • (b - a)) ∈ closedBall x₀ r := by
           simp at ht
@@ -262,13 +267,7 @@ lemma h_difference_bound (ha : a ∈ closedBall x₀ r)
               ‖(1 - t) • (a - x₀) + t • (b - x₀)‖ := by
             congr
             simp [smul_sub, sub_smul]
-            rw [← sub_add, add_sub, add_sub]
-            repeat' rw [sub_eq_add_neg]
-            rw [add_assoc a, add_comm (t • b), ← add_assoc]
-            rw [add_assoc (a + -(t • a) + -x₀ + t • x₀), add_comm (t • b),
-              ← add_assoc]
-            rw [add_assoc (a + -(t • a) + -x₀), add_right_neg, add_zero]
-            rw [add_assoc (a + -(t • a)), add_comm (t • b), ← add_assoc]
+            abel
           have triangle_inequality : ‖(1 - t) • (a - x₀) + t • (b - x₀)‖ ≤ (1 - t) * ‖a - x₀‖ + t * ‖b - x₀‖ := by
             have triangle_ineq := norm_add_le ((1 - t) • (a - x₀)) (t • (b - x₀))
             have : ‖(1 - t) • (a - x₀)‖ + ‖t • (b - x₀)‖ = (1 - t) * ‖a - x₀‖ + t * ‖b - x₀‖ := by
@@ -290,12 +289,21 @@ lemma h_difference_bound (ha : a ∈ closedBall x₀ r)
           rw [← this]
           linarith
         exact h'_sub_bound x₀ f' r assumption_bound2 (a + t • (b - a)) a this ha
-    _ ≤ (∫ (t : ℝ) in (0 : ℝ)..(1 : ℝ), ‖t‖ * ‖b - a‖) * ‖b - a‖ / r := by
-      sorry
-    _ = (∫ (t : ℝ) in (0 : ℝ)..(1 : ℝ), ‖t‖) * ‖b - a‖ ^ 2 / r := by
-      sorry
+    _ = (∫ (t : ℝ) in (0 : ℝ)..(1 : ℝ), ‖t • (b - a)‖ / r) * ‖b - a‖ := by simp
+    _ = (∫ (t : ℝ) in (0 : ℝ)..(1 : ℝ), ‖t • (b - a)‖) * ‖b - a‖ / r := by field_simp
+    _ = (∫ (t : ℝ) in (0 : ℝ)..(1 : ℝ), t * ‖b - a‖) * ‖b - a‖ / r := by
+      congr 2
+      apply intervalIntegral.integral_congr
+      intro t ht
+      apply norm_smul_of_nonneg _ (b - a)
+      simp only [zero_le_one, uIcc_of_le, mem_Icc] at ht
+      exact ht.1
+    _ = (∫ (t : ℝ) in (0 : ℝ)..(1 : ℝ), t) * ‖b - a‖ ^ 2 / r := by
+      field_simp
+      rw [pow_two]
     _ = ‖b - a‖ ^ 2 / (2 * r) := by
-      sorry
+      have : (∫ (t : ℝ) in (0 : ℝ)..(1 : ℝ), t) = 1 / 2 := by simp
+      field_simp
 
 -- (ii) Newton iterates properties
 lemma newton_iterates_properties (k : ℕ):
