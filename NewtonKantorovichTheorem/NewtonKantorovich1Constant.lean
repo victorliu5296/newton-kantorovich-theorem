@@ -352,6 +352,26 @@ lemma newton_iterates_properties (k : ℕ):
     have ih_inverse := ih.2.2.2.1
     have ih_h := ih.2.2.2.2
 
+    -- Prove each property for k+1
+    have diff_k_plus_1 : ‖newton_seq x₀ f f' (k + 1) - newton_seq x₀ f f' k‖ ≤ r / 2 ^ (k + 1) := by
+      calc ‖newton_seq x₀ f f' (k + 1) - newton_seq x₀ f f' k‖
+        _ = ‖((h' x₀ f' (newton_seq x₀ f f' k)).symm : X →L[ℝ] X)
+            (h x₀ f f' (newton_seq x₀ f f' k))‖ := by
+          rw [newton_seq]
+          simp
+          rw [newton_step_h]
+        _ ≤ ‖((h' x₀ f' (newton_seq x₀ f f' k)).symm : X →L[ℝ] X)‖
+            * ‖h x₀ f f' (newton_seq x₀ f f' k)‖ := le_opNorm
+            ((h' x₀ f' (newton_seq x₀ f f' k)).symm : X →L[ℝ] X)
+            (h x₀ f f' (newton_seq x₀ f f' k))
+        _ ≤ (2 ^ k) * (r / 2 ^ (2 * k + 1)) := by
+          apply mul_le_mul ih_inverse ih_h
+          · exact norm_nonneg (h x₀ f f' (newton_seq x₀ f f' k))
+          · norm_num
+        _ = r / 2 ^ (k + 1) := by
+          field_simp
+          ring
+
     repeat' constructor
     · show newton_seq x₀ f f' (k + 1) ∈ ball x₀ r
       rw [newton_seq]
@@ -377,7 +397,12 @@ lemma newton_iterates_properties (k : ℕ):
       -- For the second term, we can use the property of newton_step_h
       have newton_step_bound : ‖newton_step_h x₀ f f' (newton_seq x₀ f f' k)‖
           ≤ r / 2 ^ (k + 1) := by
-        sorry
+        have : newton_step_h x₀ f f' (newton_seq x₀ f f' k)
+            = - (newton_seq x₀ f f' (k + 1) - newton_seq x₀ f f' k) := by
+          rw [newton_seq]
+          simp
+        rw [this, norm_neg]
+        exact diff_k_plus_1
 
       calc ‖newton_seq x₀ f f' k - (x₀ + newton_step_h x₀ f f' (newton_seq x₀ f f' k))‖
         _ = ‖(newton_seq x₀ f f' k)
@@ -392,7 +417,7 @@ lemma newton_iterates_properties (k : ℕ):
           apply mul_lt_mul_of_pos_left _ hr
           simp only [one_div, sub_lt_self_iff, inv_pos, Nat.ofNat_pos, pow_pos]
     · show ‖newton_seq x₀ f f' (k + 1) - newton_seq x₀ f f' k‖ ≤ r / 2 ^ (k + 1)
-      sorry
+      exact diff_k_plus_1
     · show ‖newton_seq x₀ f f' (k + 1) - x₀‖ ≤ r * (1 - 1 / 2 ^ (k + 1))
       sorry
     · show ‖((h' x₀ f' (newton_seq x₀ f f' (k + 1))).symm : X →L[ℝ] X)‖ ≤ 2 ^ (k + 1)
