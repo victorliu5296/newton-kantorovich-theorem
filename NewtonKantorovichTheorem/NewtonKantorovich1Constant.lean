@@ -117,11 +117,6 @@ variable (assumption_bound2 : ∀ (u v : X), u ∈ closedBall x₀ r → v ∈ c
   ‖((f' x₀).symm : Y →L[ℝ] X).comp ((f' u : X →L[ℝ] Y) - (f' v : X →L[ℝ] Y))‖
     ≤ ‖u - v‖ / r)
 
--- Newton iteration sequence
-noncomputable def newton_seq : Nat → X
-| 0       => x₀
-| (n + 1) => newton_seq n - (f' (newton_seq n)).symm (f (newton_seq n))
-
 lemma hx₀_bound : ‖h x₀ f f' x₀‖ ≤ r / 2 := assumption_bound1
 
 lemma h'_sub_bound (u v : X) (hu : u ∈ closedBall x₀ r) (hv : v ∈ closedBall x₀ r) :
@@ -186,7 +181,7 @@ lemma h_difference_bound (ha : a ∈ closedBall x₀ r)
         (h'_deriv Ω x₀ f f' hf')
 
   have integrable_h'a_b_sub_a : IntervalIntegrable
-      (fun t ↦ (h'_clm x₀ f' a) (b - a)) MeasureTheory.volume 0 1 := by
+      (fun _ ↦ (h'_clm x₀ f' a) (b - a)) MeasureTheory.volume 0 1 := by
     exact ContinuousOn.intervalIntegrable continuousOn_const
 
   have integrable_h'a_t_smul_b_sub_a_sub_h'a_at_b_sub_a : IntervalIntegrable
@@ -242,7 +237,7 @@ lemma h_difference_bound (ha : a ∈ closedBall x₀ r)
       · exact IntervalIntegrable.norm integrable_h'a_t_smul_b_sub_a_sub_h'a_at_b_sub_a
       · apply IntervalIntegrable.mul_const
         exact integrable_norm_h'a_t_smul_b_sub_a_sub_h'a
-      · intro t ht
+      · intro t _
         exact le_opNorm (h'_clm x₀ f' (a + t • (b - a)) - h'_clm x₀ f' a) (b - a)
     _ = (∫ (t : ℝ) in (0 : ℝ)..(1 : ℝ),
         ‖h'_clm x₀ f' (a + t • (b - a)) - h'_clm x₀ f' a‖) * ‖b - a‖ := by
@@ -305,14 +300,105 @@ lemma h_difference_bound (ha : a ∈ closedBall x₀ r)
       have : (∫ (t : ℝ) in (0 : ℝ)..(1 : ℝ), t) = 1 / 2 := by simp
       field_simp
 
+-- Newton iteration sequence
+noncomputable def newton_step (x : X) : X := (f' x).symm (f x)
+noncomputable def newton_step_h (x : X) : X := (h' x₀ f' x).symm (h x₀ f f' x)
+
+lemma newton_step_equiv : newton_step f f' = newton_step_h x₀ f f' := by
+  ext x
+  unfold newton_step newton_step_h
+  unfold h h'
+  simp
+
+noncomputable def newton_seq : ℕ → X
+| 0       => x₀
+| (n + 1) => newton_seq n - newton_step_h x₀ f f' (newton_seq n)
+
 -- (ii) Newton iterates properties
 lemma newton_iterates_properties (k : ℕ):
     newton_seq x₀ f f' k ∈ ball x₀ r ∧
-    ‖newton_seq x₀ f f' k - newton_seq x₀ f f' (k-1)‖ ≤ r / 2^k ∧
-    ‖newton_seq x₀ f f' k - x₀‖ ≤ r * (1 - 1 / 2^k) ∧
-    ‖((h' x₀ f' (newton_seq x₀ f f' k)).symm : X →L[ℝ] X)‖ ≤ 2^k ∧
-    ‖h x₀ f f' (newton_seq x₀ f f' k)‖ ≤ r / 2^(2*k+1) := by
-  sorry
+    ‖newton_seq x₀ f f' k - newton_seq x₀ f f' (k - 1)‖ ≤ r / 2 ^ k ∧
+    ‖newton_seq x₀ f f' k - x₀‖ ≤ r * (1 - 1 / 2 ^ k) ∧
+    ‖((h' x₀ f' (newton_seq x₀ f f' k)).symm : X →L[ℝ] X)‖ ≤ 2 ^ k ∧
+    ‖h x₀ f f' (newton_seq x₀ f f' k)‖ ≤ r / 2 ^ (2 * k + 1) := by
+  induction k with
+  | zero =>
+    -- Base case: k = 0
+    repeat' constructor
+    · show newton_seq x₀ f f' 0 ∈ ball x₀ r
+      exact mem_ball_self hr
+    · show ‖newton_seq x₀ f f' 0 - newton_seq x₀ f f' (0 - 1)‖ ≤ r / 2 ^ 0
+      unfold newton_seq
+      simp only [sub_self, norm_zero, pow_zero, div_one]
+      linarith
+    · show ‖newton_seq x₀ f f' 0 - x₀‖ ≤ r * (1 - 1 / 2 ^ 0)
+      unfold newton_seq
+      simp
+    · show ‖((h' x₀ f' (newton_seq x₀ f f' 0)).symm : X →L[ℝ] X)‖ ≤ 2^0
+      unfold newton_seq h'
+      have : (f' x₀).trans (f' x₀).symm = ContinuousLinearEquiv.refl ℝ X := by
+        ext
+        simp
+      simp [this, ContinuousLinearEquiv.refl_symm]
+    · show ‖h x₀ f f' (newton_seq x₀ f f' 0)‖ ≤ r / 2 ^ (2 * 0 + 1)
+      unfold newton_seq h
+      simp
+      exact assumption_bound1
+  | succ k ih =>
+    -- Inductive step
+    have ih_ball := ih.1
+    have ih_diff := ih.2.1
+    have ih_dist := ih.2.2.1
+    have ih_inverse := ih.2.2.2.1
+    have ih_h := ih.2.2.2.2
+
+    repeat' constructor
+    · show newton_seq x₀ f f' (k + 1) ∈ ball x₀ r
+      rw [newton_seq]
+      have dist_triangle : ‖(newton_seq x₀ f f' k
+          - newton_step_h x₀ f f' (newton_seq x₀ f f' k)) - x₀‖
+            ≤ ‖newton_seq x₀ f f' k - x₀‖
+            + ‖newton_step_h x₀ f f' (newton_seq x₀ f f' k)‖ := by
+        have rewrite_eq : (newton_seq x₀ f f' k
+            - newton_step_h x₀ f f' (newton_seq x₀ f f' k)) - x₀
+              = (newton_seq x₀ f f' k - x₀)
+              - newton_step_h x₀ f f' (newton_seq x₀ f f' k) := by
+          abel
+        rw [rewrite_eq]
+        exact
+          norm_sub_le (newton_seq x₀ f f' k - x₀)
+            (newton_step_h x₀ f f' (newton_seq x₀ f f' k))
+      simp only [mem_ball, dist_sub_eq_dist_add_left, gt_iff_lt]
+      rw [dist_eq_norm]
+      simp only [mem_ball] at ih_ball
+      -- Use the induction hypothesis for the first term
+      have ih_dist_bound : ‖newton_seq x₀ f f' k - x₀‖
+          ≤ r * (1 - 1 / 2^k) := ih_dist
+      -- For the second term, we can use the property of newton_step_h
+      have newton_step_bound : ‖newton_step_h x₀ f f' (newton_seq x₀ f f' k)‖
+          ≤ r / 2 ^ (k + 1) := by
+        sorry
+
+      calc ‖newton_seq x₀ f f' k - (x₀ + newton_step_h x₀ f f' (newton_seq x₀ f f' k))‖
+        _ = ‖(newton_seq x₀ f f' k)
+              - newton_step_h x₀ f f' (newton_seq x₀ f f' k) - x₀‖ := by abel_nf
+        _ ≤ ‖newton_seq x₀ f f' k - x₀‖ + ‖newton_step_h x₀ f f' (newton_seq x₀ f f' k)‖ := dist_triangle
+        _ ≤ r * (1 - 1 / 2 ^ k) + r / 2 ^ (k + 1) := by linarith [ih_dist_bound, newton_step_bound]
+        _ < r := by
+          have : r * (1 - 1 / 2 ^ k) + r / 2 ^ (k + 1)
+              = r * (1 - 1 / 2 ^ (k + 1)) := by ring
+          rw [this]
+          nth_rw 2 [← mul_one r]
+          apply mul_lt_mul_of_pos_left _ hr
+          simp only [one_div, sub_lt_self_iff, inv_pos, Nat.ofNat_pos, pow_pos]
+    · show ‖newton_seq x₀ f f' (k + 1) - newton_seq x₀ f f' k‖ ≤ r / 2 ^ (k + 1)
+      sorry
+    · show ‖newton_seq x₀ f f' (k + 1) - x₀‖ ≤ r * (1 - 1 / 2 ^ (k + 1))
+      sorry
+    · show ‖((h' x₀ f' (newton_seq x₀ f f' (k + 1))).symm : X →L[ℝ] X)‖ ≤ 2 ^ (k + 1)
+      sorry
+    · show ‖h x₀ f f' (newton_seq x₀ f f' (k + 1))‖ ≤ r / 2 ^ (2 * (k + 1) + 1)
+      sorry
 
 -- (iii) Convergence to zero
 lemma newton_seq_converges :
