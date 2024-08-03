@@ -128,7 +128,7 @@ lemma h'_sub_bound (u v : X) (hu : u ∈ closedBall x₀ r) (hv : v ∈ closedBa
     (f' u).toContinuousLinearMap (f' v).toContinuousLinearMap)
 
 -- (i) Estimates
-lemma h_inverse_bound (x : X) (hx : x ∈ ball x₀ r) :
+lemma h'_inverse_bound (x : X) (hx : x ∈ ball x₀ r) :
     ‖((h' x₀ f' x).symm : X →L[ℝ] X)‖ ≤ 1 / (1 - ‖x - x₀‖ / r) := by
   have h_derivative_bound :
       ‖(h' x₀ f' x : X →L[ℝ] X) - (h' x₀ f' x₀ : X →L[ℝ] X)‖
@@ -372,8 +372,7 @@ lemma newton_iterates_properties (k : ℕ):
           field_simp
           ring
 
-    repeat' constructor
-    · show newton_seq x₀ f f' (k + 1) ∈ ball x₀ r
+    have ball_k_plus_one : newton_seq x₀ f f' (k + 1) ∈ ball x₀ r := by
       rw [newton_seq]
       have dist_triangle : ‖(newton_seq x₀ f f' k
           - newton_step_h x₀ f f' (newton_seq x₀ f f' k)) - x₀‖
@@ -416,9 +415,9 @@ lemma newton_iterates_properties (k : ℕ):
           nth_rw 2 [← mul_one r]
           apply mul_lt_mul_of_pos_left _ hr
           simp only [one_div, sub_lt_self_iff, inv_pos, Nat.ofNat_pos, pow_pos]
-    · show ‖newton_seq x₀ f f' (k + 1) - newton_seq x₀ f f' k‖ ≤ r / 2 ^ (k + 1)
-      exact diff_k_plus_1
-    · show ‖newton_seq x₀ f f' (k + 1) - x₀‖ ≤ r * (1 - 1 / 2 ^ (k + 1))
+
+    have dist_k_plus_one : ‖newton_seq x₀ f f' (k + 1) - x₀‖
+        ≤ r * (1 - 1 / 2 ^ (k + 1)) := by
       calc ‖newton_seq x₀ f f' (k + 1) - x₀‖
         _ = ‖(newton_seq x₀ f f' k
             - newton_step_h x₀ f f' (newton_seq x₀ f f' k)) - x₀‖ := by
@@ -438,8 +437,23 @@ lemma newton_iterates_properties (k : ℕ):
         _ = r * (1 - 1 / 2 ^ (k + 1)) := by
           field_simp
           ring
-    · show ‖((h' x₀ f' (newton_seq x₀ f f' (k + 1))).symm : X →L[ℝ] X)‖ ≤ 2 ^ (k + 1)
-      sorry
+    repeat' constructor
+    · show newton_seq x₀ f f' (k + 1) ∈ ball x₀ r
+      exact ball_k_plus_one
+    · show ‖newton_seq x₀ f f' (k + 1) - newton_seq x₀ f f' k‖ ≤ r / 2 ^ (k + 1)
+      exact diff_k_plus_1
+    · show ‖newton_seq x₀ f f' (k + 1) - x₀‖ ≤ r * (1 - 1 / 2 ^ (k + 1))
+      exact dist_k_plus_one
+    · show ‖((h' x₀ f' (newton_seq x₀ f f' (k + 1))).symm : X →L[ℝ] X)‖
+        ≤ 2 ^ (k + 1)
+      apply le_trans
+      apply h'_inverse_bound x₀ f' r hr assumption_bound2
+        (newton_seq x₀ f f' (k + 1))
+      · exact ball_k_plus_one
+      · rw [← one_div_one_div (2 ^ (k + 1) : ℝ)]
+        apply one_div_le_one_div_of_le (by norm_num)
+        rw [le_sub_comm, div_le_iff hr, mul_comm]
+        exact dist_k_plus_one
     · show ‖h x₀ f f' (newton_seq x₀ f f' (k + 1))‖ ≤ r / 2 ^ (2 * (k + 1) + 1)
       sorry
 
