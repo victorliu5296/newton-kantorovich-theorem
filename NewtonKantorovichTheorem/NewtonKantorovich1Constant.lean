@@ -419,7 +419,25 @@ lemma newton_iterates_properties (k : ℕ):
     · show ‖newton_seq x₀ f f' (k + 1) - newton_seq x₀ f f' k‖ ≤ r / 2 ^ (k + 1)
       exact diff_k_plus_1
     · show ‖newton_seq x₀ f f' (k + 1) - x₀‖ ≤ r * (1 - 1 / 2 ^ (k + 1))
-      sorry
+      calc ‖newton_seq x₀ f f' (k + 1) - x₀‖
+        _ = ‖(newton_seq x₀ f f' k
+            - newton_step_h x₀ f f' (newton_seq x₀ f f' k)) - x₀‖ := by
+          rw [newton_seq]
+        _ ≤ ‖newton_seq x₀ f f' k - x₀‖
+            + ‖newton_step_h x₀ f f' (newton_seq x₀ f f' k)‖ := by
+          rw [sub_right_comm]
+          exact
+            norm_sub_le (newton_seq x₀ f f' k - x₀)
+              (newton_step_h x₀ f f' (newton_seq x₀ f f' k))
+        _ = ‖newton_seq x₀ f f' k - x₀‖
+            + ‖newton_seq x₀ f f' (k + 1) - newton_seq x₀ f f' k‖ := by
+          rw [newton_seq]
+          simp only [sub_sub_cancel_left, norm_neg]
+        _ ≤ r * (1 - 1 / 2 ^ k) + r / 2 ^ (k + 1) := by
+          exact add_le_add ih_dist diff_k_plus_1
+        _ = r * (1 - 1 / 2 ^ (k + 1)) := by
+          field_simp
+          ring
     · show ‖((h' x₀ f' (newton_seq x₀ f f' (k + 1))).symm : X →L[ℝ] X)‖ ≤ 2 ^ (k + 1)
       sorry
     · show ‖h x₀ f f' (newton_seq x₀ f f' (k + 1))‖ ≤ r / 2 ^ (2 * (k + 1) + 1)
