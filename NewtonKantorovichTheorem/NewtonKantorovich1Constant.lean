@@ -167,7 +167,7 @@ lemma h'_inverse_bound (x : X) (hx : x ∈ ball x₀ r) :
       · linarith [dist_lt_one]
       · linarith [h_derivative_bound]
 
-lemma h_difference_bound (ha : a ∈ closedBall x₀ r)
+lemma h_h'_difference_bound (ha : a ∈ closedBall x₀ r)
     (hb : b ∈ closedBall x₀ r) :
     ‖h x₀ f f' b - h x₀ f f' a - h'_clm x₀ f' a (b - a)‖
     ≤ ‖b - a‖ ^ 2 / (2 * r) := by
@@ -347,7 +347,6 @@ lemma newton_iterates_properties (k : ℕ):
   | succ k ih =>
     -- Inductive step
     have ih_ball := ih.1
-    have ih_diff := ih.2.1
     have ih_dist := ih.2.2.1
     have ih_inverse := ih.2.2.2.1
     have ih_h := ih.2.2.2.2
@@ -455,7 +454,58 @@ lemma newton_iterates_properties (k : ℕ):
         rw [le_sub_comm, div_le_iff hr, mul_comm]
         exact dist_k_plus_one
     · show ‖h x₀ f f' (newton_seq x₀ f f' (k + 1))‖ ≤ r / 2 ^ (2 * (k + 1) + 1)
-      sorry
+      have : ‖h x₀ f f' (newton_seq x₀ f f' (k + 1))‖
+          = ‖(h x₀ f f' (newton_seq x₀ f f' (k + 1)))
+              - h x₀ f f' (newton_seq x₀ f f' k)
+              - h' x₀ f' (newton_seq x₀ f f' k)
+              (newton_seq x₀ f f' (k + 1) - newton_seq x₀ f f' k)‖ := by
+        congr
+        rw [sub_sub, sub_eq_add_neg]
+        apply self_eq_add_right.mpr
+        rw [newton_seq]
+        unfold newton_step_h
+        simp
+      rw [this]
+      have line_in_domain :
+          ∀ t ∈ Icc (0 : ℝ) 1, ((newton_seq x₀ f f' k)
+          + t • (newton_seq x₀ f f' (k + 1) - newton_seq x₀ f f' k)) ∈ Ω := by
+        intro t ht
+        have hk_in_ball : newton_seq x₀ f f' k ∈ ball x₀ r := ih_ball
+        have hk1_in_ball : newton_seq x₀ f f' (k + 1) ∈ ball x₀ r := ball_k_plus_one
+        have linear_combination_form : newton_seq x₀ f f' k
+            + t • (newton_seq x₀ f f' (k + 1) - newton_seq x₀ f f' k)
+            = (1 - t) • newton_seq x₀ f f' k + t • (newton_seq x₀ f f' (k + 1)) := by
+          rw [newton_seq]
+          simp only [sub_smul, one_smul, smul_sub]
+          abel_nf
+        have convex_in_ball : ((newton_seq x₀ f f' k)
+            + t • (newton_seq x₀ f f' (k + 1) - newton_seq x₀ f f' k)) ∈ ball x₀ r := by
+          rw [linear_combination_form]
+          simp only [mem_Icc] at ht
+          apply convex_ball
+          · exact hk_in_ball
+          · exact hk1_in_ball
+          · linarith [ht.1]
+          · linarith
+          · norm_num
+        have ball_subset_domain : ball x₀ r ⊆ Ω :=
+          Subset.trans ball_subset_closedBall assumption_subset
+        exact ball_subset_domain convex_in_ball
+      apply le_trans
+      apply h_h'_difference_bound Ω hΩ x₀ f hf f' hf'
+        (newton_seq x₀ f f' k) (newton_seq x₀ f f' (k + 1))
+        line_in_domain r hr assumption_bound2
+      · exact mem_of_mem_of_subset ih_ball ball_subset_closedBall
+      · exact mem_of_mem_of_subset ball_k_plus_one ball_subset_closedBall
+      · have : ‖newton_seq x₀ f f' (k + 1) - newton_seq x₀ f f' k‖ ^ 2 / (2 * r)
+            ≤ (r / 2 ^ (k + 1)) ^ 2 / (2 * r) := by
+          apply (div_le_div_right (by linarith)).mpr
+          rw [pow_two, pow_two]
+          apply mul_self_le_mul_self (by norm_num)
+          exact diff_k_plus_1
+        apply le_of_le_of_eq this
+        field_simp
+        ring
 
 -- (iii) Convergence to zero
 lemma newton_seq_converges :
