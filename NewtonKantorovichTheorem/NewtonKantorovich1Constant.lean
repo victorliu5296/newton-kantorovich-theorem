@@ -4,7 +4,7 @@ import Mathlib.Analysis.SpecialFunctions.Integrals
 import NewtonKantorovichTheorem.MeanValueBanach
 import NewtonKantorovichTheorem.CLMBound
 
-open Set Topology Metric ContinuousLinearMap
+open Set Topology Metric ContinuousLinearMap Filter
 
 section NewtonKantorovich1Constant
 
@@ -94,8 +94,8 @@ lemma h'_cont_a_b {Ω : Set X} {x₀ a b : X} {f : X → Y} {f' : X → X ≃L[�
     (hh_contDiffOn : ContDiffOn ℝ 1 (h x₀ f f') Ω)
     (hh' : ∀ x ∈ Ω, HasFDerivAt (h x₀ f f') (h' x₀ f' x : X →L[ℝ] X) x) :
     ContinuousOn (fun t : ℝ ↦
-      ((h'_clm x₀ f') (a + t • (b - a)) : X →L[ℝ] X)) (Icc 0 1) := by
-  exact f'_cont_a_b Ω hΩ (h x₀ f f') hh_contDiffOn (h' x₀ f') hh' a b hab
+      ((h'_clm x₀ f') (a + t • (b - a)) : X →L[ℝ] X)) (Icc 0 1) :=
+  f'_cont_a_b Ω hΩ (h x₀ f f') hh_contDiffOn (h' x₀ f') hh' a b hab
 
 lemma h'x₀_eq_id : h' x₀ f' x₀ = ContinuousLinearMap.id ℝ X := by
   unfold h'
@@ -509,20 +509,120 @@ lemma newton_iterates_properties (k : ℕ):
 
 -- (iii) Convergence to zero
 lemma newton_seq_converges :
-  ∃ a, a ∈ closedBall x₀ r ∧
-      Filter.Tendsto (newton_seq x₀ f f') atTop (𝓝 a) ∧
-      f a = 0 ∧
-      ∀ k, ‖newton_seq x₀ f f' k - a‖ ≤ r / 2^k := by
-  sorry
+    ∃ a_zero, a_zero ∈ closedBall x₀ r ∧
+    Tendsto (newton_seq x₀ f f') atTop (𝓝 a_zero) ∧
+    f a_zero = 0 ∧
+    ∀ k, ‖newton_seq x₀ f f' k - a_zero‖ ≤ r / 2^k := by
+  -- Prove that (xₖ) is a Cauchy sequence
+  have cauchy_seq : CauchySeq (newton_seq x₀ f f') := by
+    apply cauchySeq_of_le_geometric (1 / 2) (r / 2)
+    · linarith
+    · intro n
+      rw [dist_eq_norm, ← norm_neg]
+      field_simp
+      nth_rw 1 [← pow_one 2]
+      rw [← pow_add, add_comm 1 n]
+      have := (newton_iterates_properties
+        Ω hΩ x₀ f hf f' hf' r hr assumption_subset
+        assumption_bound1 assumption_bound2 (n + 1)).2.1
+      simp at this
+      exact this
+
+  -- Since xₖ ∈ B(x₀; r) ⊆ B̄(x₀; r) and B̄(x₀; r) is complete
+  have complete_space : CompleteSpace (closedBall x₀ r) :=
+    IsClosed.completeSpace_coe isClosed_ball
+
+  -- Use the completeness to obtain the limit point a
+  obtain ⟨a_zero, ha_tendsto⟩ : ∃ a, Tendsto (newton_seq x₀ f f') atTop (𝓝 a) :=
+    cauchySeq_tendsto_of_complete cauchy_seq
+
+  -- Show that a ∈ closedBall x₀ r
+  have ha_in_ball : a_zero ∈ closedBall x₀ r := by
+    apply isClosed_ball.mem_of_tendsto ha_tendsto
+    apply eventually_of_forall
+    intro n
+    have in_open_ball := (newton_iterates_properties
+              Ω hΩ x₀ f hf f' hf' r hr assumption_subset
+              assumption_bound1 assumption_bound2 n).1
+    apply ball_subset_closedBall
+    exact in_open_ball
+
+  -- Show that h(a) = 0
+  have h_lim : Tendsto (h x₀ f f' ∘ newton_seq x₀ f f') atTop (𝓝 0) := by
+    have zero_tendsto_zero : Tendsto (fun (k : ℕ) ↦ (0 : ℝ)) atTop (𝓝 0) :=
+      tendsto_const_nhds
+    have zero_le_norm : (fun (k : ℕ) ↦ (0 : ℝ))
+        ≤ (fun (k : ℕ) ↦ ‖(h x₀ f f' ∘ newton_seq x₀ f f') k‖) := by
+      intro k
+      simp
+    have le_bound : (fun (k : ℕ) ↦ ‖(h x₀ f f' ∘ newton_seq x₀ f f') k‖)
+        ≤ fun (k : ℕ) ↦ r / 2 ^ (2 * k + 1) := by
+      intro k
+      exact (newton_iterates_properties
+        Ω hΩ x₀ f hf f' hf' r hr assumption_subset
+        assumption_bound1 assumption_bound2 k).2.2.2.2
+    have bound_vanishes : Tendsto (fun k ↦ r / 2 ^ (2 * k + 1)) atTop (𝓝 0) := by
+      have (k : ℕ) : r / 2 ^ (2 * k + 1) = r * (1 / 2) ^ ((2 * k + 1) : ℤ) := by
+        field_simp
+        left
+        rfl
+      simp only [this]
+      have geom_vanishes : Tendsto (fun k ↦ (1 / 2 : ℝ) ^ (2 * k + 1)) atTop (𝓝 0) := by
+        have zero_le_geom : (fun (k : ℕ) ↦ (0 : ℝ))
+            ≤ (fun (k : ℕ) ↦ (1 / 2 : ℝ) ^ (2 * k + 1)) := by
+          intro k
+          field_simp
+          norm_num
+        have geom_tendsto_zero : Tendsto (fun k ↦ (1 / 2 : ℝ) ^ k) atTop (𝓝 0) := by
+          have one_half_lt_one : |(1 / 2 : ℝ)| < 1 := by
+            rw [abs_of_nonneg (by linarith)]
+            linarith
+          exact tendsto_pow_atTop_nhds_zero_of_abs_lt_one one_half_lt_one
+        have le_geom : (fun (k : ℕ) ↦ (1 / 2 : ℝ) ^ (2 * k + 1))
+            ≤ (fun (k : ℕ) ↦ (1 / 2 : ℝ) ^ k) := by
+          intro k
+          field_simp
+          exact one_div_pow_le_one_div_pow_of_le (by norm_num) (by linarith)
+        exact tendsto_of_tendsto_of_tendsto_of_le_of_le
+          zero_tendsto_zero geom_tendsto_zero zero_le_geom le_geom
+      rw [← mul_zero r]
+      exact Tendsto.const_mul r geom_vanishes
+    apply tendsto_zero_iff_norm_tendsto_zero.mpr
+    exact tendsto_of_tendsto_of_tendsto_of_le_of_le
+      zero_tendsto_zero bound_vanishes zero_le_norm le_bound
+
+  have ha_eq_zero : h x₀ f f' a_zero = 0 := by
+    have newton_iterates_in_ball (k : ℕ) := (newton_iterates_properties
+      Ω hΩ x₀ f hf f' hf' r hr assumption_subset
+      assumption_bound1 assumption_bound2 k).1
+    have h_continuousAt_a : ContinuousAt (h x₀ f f') a_zero := by
+      apply ((h_contDiffOn Ω x₀ f hf f').continuousOn.continuousWithinAt
+        (assumption_subset ha_in_ball)).continuousAt
+      exact IsOpen.mem_nhds hΩ (assumption_subset ha_in_ball)
+    apply Eq.symm
+    apply tendsto_nhds_unique h_lim
+    exact Tendsto.comp h_continuousAt_a ha_tendsto
+
+  -- Show that f(a) = 0
+  have fa_eq_zero : f a_zero = 0 := by
+    unfold h at ha_eq_zero
+    exact (LinearEquiv.map_eq_zero_iff (f' x₀).symm.toLinearEquiv).mp ha_eq_zero
+
+  -- Show that the distance at the k-th iteration is bounded by r / 2^k
+  have dist_k_le_r : ∀ k, ‖newton_seq x₀ f f' k - a_zero‖ ≤ r / 2^k := by
+    sorry
+
+  exact ⟨a_zero, ha_in_ball, ha_tendsto, fa_eq_zero, dist_k_le_r⟩
 
 -- (iv) Uniqueness of zero
-lemma zero_unique (a b : X) (ha : a ∈ closedBall x₀ r) (hb : b ∈ closedBall x₀ r)
-  (hfa : f a = 0) (hfb : f b = 0) : a = b := by
+lemma zero_unique (a₁ a₂ : X)
+    (ha : a₁ ∈ closedBall x₀ r) (hb : a₂ ∈ closedBall x₀ r)
+    (hfa : f a₁ = 0) (hfb : f a₂ = 0) : a₁ = a₂ := by
   sorry
 
 theorem newton_kantorovich_1_const :
-  (∀ k : Nat, (newton_seq x₀ f f' k) ∈ closedBall x₀ r) ∧
-  (∃! a ∈ closedBall x₀ r, f a = 0 ∧ ∀ k : Nat, ‖newton_seq x₀ f f' k - a‖ ≤ r / 2^k) := by
+    (∀ k : Nat, (newton_seq x₀ f f' k) ∈ closedBall x₀ r) ∧
+    (∃! a ∈ closedBall x₀ r, f a = 0 ∧ ∀ k : Nat, ‖newton_seq x₀ f f' k - a‖ ≤ r / 2^k) := by
   sorry
 
 end NewtonKantorovich1Constant
