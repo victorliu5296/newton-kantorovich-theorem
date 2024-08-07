@@ -3,6 +3,7 @@ Repository for the proof formalization of the Newton-Kantorovich theorem in Lean
 
 # Credits
 I am so grateful to the following people for helping me with this project:
+- The authors of the paper "ON THE NEWTON–KANTOROVICH THEOREM" Philip G. Ciarlet and Cristinel Mardare for their proof which this project is entirely based on.
 - All the Mathlib contributors for their development of the amazing mathlib library and the creators of the Lean language.
 - Kevin Buzzard and Yury Kudryashov for helping me solve so many type errors and answering my numerous questions. Without them, I could not have gotten any far.
 - Edward van de Meent, Kalle Kytölä, Michal Wallace (tangentstorm), Luigi Massacci, Yakov Pechersky, Floris van Doorn, Jireh Loreaux, Michael Stoll for helping answer my questions on the Lean zulip channel.
