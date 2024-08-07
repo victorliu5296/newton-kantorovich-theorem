@@ -528,10 +528,6 @@ lemma newton_seq_converges :
       simp at this
       exact this
 
-  -- Since xₖ ∈ B(x₀; r) ⊆ B̄(x₀; r) and B̄(x₀; r) is complete
-  have complete_space : CompleteSpace (closedBall x₀ r) :=
-    IsClosed.completeSpace_coe isClosed_ball
-
   -- Use the completeness to obtain the limit point a
   obtain ⟨a_zero, ha_tendsto⟩ : ∃ a, Tendsto (newton_seq x₀ f f') atTop (𝓝 a) :=
     cauchySeq_tendsto_of_complete cauchy_seq
@@ -549,9 +545,9 @@ lemma newton_seq_converges :
 
   -- Show that h(a) = 0
   have h_lim : Tendsto (h x₀ f f' ∘ newton_seq x₀ f f') atTop (𝓝 0) := by
-    have zero_tendsto_zero : Tendsto (fun (k : ℕ) ↦ (0 : ℝ)) atTop (𝓝 0) :=
+    have zero_tendsto_zero : Tendsto (fun (_ : ℕ) ↦ (0 : ℝ)) atTop (𝓝 0) :=
       tendsto_const_nhds
-    have zero_le_norm : (fun (k : ℕ) ↦ (0 : ℝ))
+    have zero_le_norm : (fun (_ : ℕ) ↦ (0 : ℝ))
         ≤ (fun (k : ℕ) ↦ ‖(h x₀ f f' ∘ newton_seq x₀ f f') k‖) := by
       intro k
       simp
@@ -568,7 +564,7 @@ lemma newton_seq_converges :
         rfl
       simp only [this]
       have geom_vanishes : Tendsto (fun k ↦ (1 / 2 : ℝ) ^ (2 * k + 1)) atTop (𝓝 0) := by
-        have zero_le_geom : (fun (k : ℕ) ↦ (0 : ℝ))
+        have zero_le_geom : (fun (_ : ℕ) ↦ (0 : ℝ))
             ≤ (fun (k : ℕ) ↦ (1 / 2 : ℝ) ^ (2 * k + 1)) := by
           intro k
           field_simp
@@ -592,9 +588,6 @@ lemma newton_seq_converges :
       zero_tendsto_zero bound_vanishes zero_le_norm le_bound
 
   have ha_eq_zero : h x₀ f f' a_zero = 0 := by
-    have newton_iterates_in_ball (k : ℕ) := (newton_iterates_properties
-      Ω hΩ x₀ f hf f' hf' r hr assumption_subset
-      assumption_bound1 assumption_bound2 k).1
     have h_continuousAt_a : ContinuousAt (h x₀ f f') a_zero := by
       apply ((h_contDiffOn Ω x₀ f hf f').continuousOn.continuousWithinAt
         (assumption_subset ha_in_ball)).continuousAt
@@ -609,8 +602,22 @@ lemma newton_seq_converges :
     exact (LinearEquiv.map_eq_zero_iff (f' x₀).symm.toLinearEquiv).mp ha_eq_zero
 
   -- Show that the distance at the k-th iteration is bounded by r / 2^k
-  have dist_k_le_r : ∀ k, ‖newton_seq x₀ f f' k - a_zero‖ ≤ r / 2^k := by
-    sorry
+  have dist_k_le_r : ∀ k, ‖newton_seq x₀ f f' k - a_zero‖ ≤ r / 2 ^ k := by
+    intro k
+    have dist_bound (n : ℕ) : dist (newton_seq x₀ f f' n)
+        (newton_seq x₀ f f' (n + 1)) ≤ (r / 2) * (1 / 2) ^ n := by
+      rw [dist_eq_norm, ← norm_neg]
+      simp only [neg_sub]
+      have : r / 2 ^ (n + 1) = (r / 2) * (1 / 2) ^ n := by ring_nf
+      rw [← this]
+      exact (newton_iterates_properties
+        Ω hΩ x₀ f hf f' hf' r hr assumption_subset
+        assumption_bound1 assumption_bound2 (n + 1)).2.1
+    have dist_bound := dist_le_of_le_geometric_of_tendsto (1 / 2) (r / 2)
+      (by linarith) dist_bound ha_tendsto k
+    have : r / 2 * (1 / 2) ^ k / (1 - 1 / 2) = r / 2 ^ k := by ring_nf
+    rw [← this, ← dist_eq_norm]
+    exact dist_bound
 
   exact ⟨a_zero, ha_in_ball, ha_tendsto, fa_eq_zero, dist_k_le_r⟩
 
