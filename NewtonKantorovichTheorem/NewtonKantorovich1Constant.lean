@@ -623,13 +623,25 @@ lemma newton_seq_converges :
 
 -- (iv) Uniqueness of zero
 lemma zero_unique (a₁ a₂ : X)
-    (ha : a₁ ∈ closedBall x₀ r) (hb : a₂ ∈ closedBall x₀ r)
-    (hfa : f a₁ = 0) (hfb : f a₂ = 0) : a₁ = a₂ := by
-  sorry
-
-theorem newton_kantorovich_1_const :
-    (∀ k : Nat, (newton_seq x₀ f f' k) ∈ closedBall x₀ r) ∧
-    (∃! a ∈ closedBall x₀ r, f a = 0 ∧ ∀ k : Nat, ‖newton_seq x₀ f f' k - a‖ ≤ r / 2^k) := by
-  sorry
+    (ha₁ : Tendsto (newton_seq x₀ f f') atTop (𝓝 a₁))
+    (ha₂ : Tendsto (newton_seq x₀ f f') atTop (𝓝 a₂)) :
+    a₁ ∈ closedBall x₀ r ∧
+    a₂ ∈ closedBall x₀ r ∧
+    a₁ = a₂ := by
+  have ha_in_ball (a_zero : X)
+      (ha_tendsto : Tendsto (newton_seq x₀ f f') atTop (𝓝 a_zero)) :
+      a_zero ∈ closedBall x₀ r := by
+    apply isClosed_ball.mem_of_tendsto ha_tendsto
+    apply eventually_of_forall
+    intro n
+    have in_open_ball := (newton_iterates_properties
+              Ω hΩ x₀ f hf f' hf' r hr assumption_subset
+              assumption_bound1 assumption_bound2 n).1
+    apply ball_subset_closedBall
+    exact in_open_ball
+  repeat' constructor
+  · exact ha_in_ball a₁ ha₁
+  · exact ha_in_ball a₂ ha₂
+  · exact tendsto_nhds_unique ha₁ ha₂
 
 end NewtonKantorovich1Constant
